@@ -29,7 +29,7 @@ fixnum = Fixnum <$> L.decimal
 string :: Parser Literal
 string = do
   _ <- C.char '"'
-  s <- manyTill (C.printChar) (C.char '"')
+  s <- manyTill C.printChar (C.char '"')
   pure $ String $ pack s
 
 literal :: Parser Literal
