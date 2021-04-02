@@ -5,12 +5,21 @@ module Compiler
 import AST
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
+import Data.ByteString.UTF8 (fromString)
 import Data.ByteString.Builder qualified as BS
 
 compile :: AST -> ByteString
-compile _ =
+compile ast =
   prologue "_entry_function"
+  <> function ast
   <> epilogue
+
+function :: AST -> ByteString
+function (Lit (Fixnum n))   = ins $ "movl $" <> fromString (show $ n * 4) <> ", %eax"
+function (Lit (Bool True))  = ins $ "movl $0x2f, %eax"
+function (Lit (Bool False)) = ins $ "movl $0x6f, %eax"
+function (Lit Nil)          = ins $ "movl $0x3f, %eax"
+function _                  = error "Implement me"
 
 prologue :: ByteString -> ByteString
 prologue sym =

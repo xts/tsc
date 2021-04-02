@@ -1,9 +1,12 @@
 {-# LANGUAGE OverloadedStrings, ImportQualifiedPost #-}
 
-module Parser where
+module Parser
+  ( parse
+  ) where
 
 import AST
-import Text.Megaparsec
+import Control.Monad (void)
+import Text.Megaparsec hiding (parse)
 import Text.Megaparsec.Char qualified as C
 import Text.Megaparsec.Char.Lexer qualified as L
 import Data.Either.Combinators (mapLeft)
@@ -33,7 +36,7 @@ string = do
   pure $ String $ pack s
 
 literal :: Parser Literal
-literal = bool <|> fixnum <|> string <|> nil
+literal = L.lexeme C.space (bool <|> fixnum <|> string <|> nil)
 
 program :: Parser AST
 program = Lit <$> literal <* eof
