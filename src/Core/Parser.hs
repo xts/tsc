@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings, ImportQualifiedPost #-}
 
-module Parser
+module Core.Parser
   ( parse
   ) where
 
-import AST
-import Control.Monad (void)
 import Text.Megaparsec hiding (parse)
 import Text.Megaparsec.Char qualified as C
 import Text.Megaparsec.Char.Lexer qualified as L
 import Data.Either.Combinators (mapLeft)
 import Data.Text (Text, pack)
 import Data.Void (Void)
+
+import Core.AST
 
 type Parser = Parsec Void Text
 

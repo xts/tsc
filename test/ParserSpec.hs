@@ -3,8 +3,8 @@
 module ParserSpec (spec) where
 
 import Test.Hspec
-import AST
-import Parser
+import Core.AST
+import Core.Parser
 
 spec :: Spec
 spec = do

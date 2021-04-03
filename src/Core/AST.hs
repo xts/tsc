@@ -1,4 +1,4 @@
-module AST
+module Core.AST
     ( AST(..)
     , Literal(..)
     ) where

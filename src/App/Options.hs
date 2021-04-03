@@ -1,16 +1,10 @@
 module Options
-  ( Options(..)
-  , parseOptions
+  ( parseOptions
   ) where
 
 import Options.Applicative
 
-data Options = Options
-  { optSource  :: String
-  , optOut     :: String
-  , optEmitAst :: Bool
-  , optEmitAsm :: Bool
-  } deriving (Show)
+import Core.Options
 
 options :: Parser Options
 options = Options
