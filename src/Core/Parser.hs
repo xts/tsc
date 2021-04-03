@@ -2,8 +2,11 @@
 
 module Core.Parser
   ( parse
+  , fixnumMin
+  , fixnumMax
   ) where
 
+import Control.Monad (guard)
 import Text.Megaparsec hiding (parse)
 import Text.Megaparsec.Char qualified as C
 import Text.Megaparsec.Char.Lexer qualified as L
@@ -14,6 +17,10 @@ import Data.Void (Void)
 import Core.AST
 
 type Parser = Parsec Void Text
+
+fixnumMin, fixnumMax :: Int
+fixnumMin = -536870912
+fixnumMax =  536870911
 
 nil :: Parser Literal
 nil = do
@@ -26,8 +33,17 @@ bool = Bool <$> (true <|> false)
     true  = C.string "#t" >> pure True
     false = C.string "#f" >> pure False
 
+applySign :: Maybe Char -> Int -> Int
+applySign (Just '-') n = -n
+applySign _          n =  n
+
 fixnum :: Parser Literal
-fixnum = Fixnum <$> L.decimal
+fixnum = do
+  neg <- optional $ C.char '-'
+  n <- applySign neg <$> L.decimal
+  guard $ n >= fixnumMin
+  guard $ n <= fixnumMax
+  pure $ Fixnum n
 
 string :: Parser Literal
 string = do

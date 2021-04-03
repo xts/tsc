@@ -38,7 +38,9 @@ spec = do
     it "compiles fixnum" $ do
       running "0" `shouldReturn` "0"
       running "1" `shouldReturn` "1"
-      running "1073741823" `shouldReturn` "-1"
+      running "-1" `shouldReturn` "-1"
+      running "-536870912" `shouldReturn` "-536870912"
+      running "536870911" `shouldReturn` "536870911"
 
 {--
     -- String.

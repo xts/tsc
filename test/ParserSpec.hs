@@ -3,6 +3,8 @@
 module ParserSpec (spec) where
 
 import Test.Hspec
+import Data.Either (isLeft)
+
 import Core.AST
 import Core.Parser
 
@@ -22,7 +24,13 @@ spec = do
     it "parses fixnum" $ do
       parse "0" `shouldBe` Right (Lit $ Fixnum 0)
       parse "1" `shouldBe` Right (Lit $ Fixnum 1)
-      parse "1073741823" `shouldBe` Right (Lit $ Fixnum 1073741823)
+      parse "-1" `shouldBe` Right (Lit $ Fixnum (-1))
+      -- Test limits.
+      parse "-536870912" `shouldBe` Right (Lit $ Fixnum (-536870912))
+      parse "536870911" `shouldBe` Right (Lit $ Fixnum 536870911)
+      -- Going beyond limits should fail.
+      parse "536870912" `shouldSatisfy` isLeft
+      parse "-536870913" `shouldSatisfy` isLeft
 
     -- String.
     it "parses string" $ do
