@@ -6,9 +6,10 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (ExceptT, except, runExceptT, throwE)
 import Data.Text.IO (readFile)
 import Data.ByteString.UTF8 (toString)
-import Prelude hiding (readFile)
+import Prelude hiding (lex, readFile)
 
 import Core.CodeGen
+import Core.Lexer
 import Core.Parser
 import Core.Options
 import Core.Linker
@@ -22,7 +23,8 @@ compile options = runExceptT pipeline
         Source text -> pure text
         File path -> lift $ readFile path
 
-      ast <- except $ parse source
+      tokens <- except $ lex source
+      ast    <- except $ parse tokens
       maybeEmitAst ast
 
       asm <- except $ lower ast

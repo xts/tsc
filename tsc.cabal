@@ -25,9 +25,11 @@ library
     Core.AST,
     Core.CodeGen,
     Core.Compiler,
+    Core.Lexer,
     Core.Linker,
     Core.Options,
     Core.Parser,
+    Core.Token
   build-depends:
     base          ^>= 4.14,
     bytestring    ^>= 0.11,
