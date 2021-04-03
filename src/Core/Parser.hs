@@ -22,10 +22,25 @@ fixnumMin, fixnumMax :: Int
 fixnumMin = -536870912
 fixnumMax =  536870911
 
-nil :: Parser Literal
-nil = do
-  _ <- C.string "()"
-  pure Nil
+nil :: Parser Expr
+nil = L.lexeme C.space (C.string "()") >> pure Nil
+
+ident :: Parser String
+ident = try special <|> try short <|> normal
+  where
+    special = do
+      x <- C.char '*' <|> C.char '+'
+      y <- some C.letterChar
+      z <- many (C.alphaNumChar <|> C.symbolChar <|> C.punctuationChar )
+      pure $ x : y ++ z
+    short = (:[]) <$> (C.char '*' <|> C.char '+' <|> C.char '-' <|> C.char '/') <* C.space
+    normal = do
+      x <- C.letterChar
+      y <- many (C.alphaNumChar <|> C.symbolChar <|> C.punctuationChar)
+      pure $ x : y
+
+sym :: Parser Expr
+sym = Sym . pack <$> L.lexeme C.space ident
 
 bool :: Parser Literal
 bool = Bool <$> (true <|> false)
@@ -39,8 +54,8 @@ applySign _          n =  n
 
 fixnum :: Parser Literal
 fixnum = do
-  neg <- optional $ C.char '-'
-  n <- applySign neg <$> L.decimal
+  sign <- optional (C.char '-' <|> C.char '+')
+  n <- applySign sign <$> L.decimal
   guard $ n >= fixnumMin
   guard $ n <= fixnumMax
   pure $ Fixnum n
@@ -51,11 +66,17 @@ string = do
   s <- manyTill C.printChar (C.char '"')
   pure $ String $ pack s
 
-literal :: Parser Literal
-literal = L.lexeme C.space (bool <|> fixnum <|> string <|> nil)
+literal :: Parser Expr
+literal = Lit <$> L.lexeme C.space (bool <|> try fixnum <|> string)
 
-program :: Parser AST
-program = Lit <$> literal <* eof
+list :: Parser Expr
+list = List <$> (L.lexeme C.space (C.char '(') *> some expr <* optional C.space <* C.char ')')
 
-parse :: Text -> Either String AST
+expr :: Parser Expr
+expr = nil <|> try literal <|> sym <|> list
+
+program :: Parser Expr
+program = expr <* eof
+
+parse :: Text -> Either String Expr
 parse = mapLeft errorBundlePretty . runParser program "<input>"

@@ -7,18 +7,18 @@ import Data.ByteString.UTF8 (fromString)
 
 import Core.AST
 
-lower :: AST -> Either String ByteString
-lower ast = Right $
+lower :: Expr -> Either String ByteString
+lower expression = Right $
   prologue "_entry_function"
-  <> function ast
+  <> expr expression
   <> epilogue
 
-function :: AST -> ByteString
-function (Lit (Fixnum n))   = ins $ "movl $" <> fromString (show $ n * 4) <> ", %eax"
-function (Lit (Bool True))  = ins "movl $0x2f, %eax"
-function (Lit (Bool False)) = ins "movl $0x6f, %eax"
-function (Lit Nil)          = ins "movl $0x3f, %eax"
-function _                  = error "Implement me"
+expr :: Expr -> ByteString
+expr (Lit (Fixnum n))   = ins $ "movl $" <> fromString (show $ n * 4) <> ", %eax"
+expr (Lit (Bool True))  = ins "movl $0x2f, %eax"
+expr (Lit (Bool False)) = ins "movl $0x6f, %eax"
+expr Nil                = ins "movl $0x3f, %eax"
+expr _                  = error "Implement me"
 
 prologue :: ByteString -> ByteString
 prologue sym =

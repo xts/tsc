@@ -1,17 +1,20 @@
 module Core.AST
-    ( AST(..)
+    ( Expr(..)
     , Literal(..)
     ) where
 
 import Data.Text (Text)
 
-data AST = Lit Literal
+data Expr
+  = Nil
+  | Sym Text
+  | Lit Literal
+  | List [Expr]
   deriving (Eq, Show)
 
-data Literal =
-    Fixnum Int
+data Literal
+  = Fixnum Int
   | String Text
   | Char Char
   | Bool Bool
-  | Nil
   deriving (Eq, Show)

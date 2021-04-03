@@ -13,7 +13,7 @@ spec = do
   describe "parse" $ do
     -- Nil.
     it "parses ()" $ do
-      parse "()" `shouldBe` Right (Lit Nil)
+      parse "()" `shouldBe` Right Nil
 
     -- Bool.
     it "parses bool" $ do
@@ -37,3 +37,21 @@ spec = do
       parse "\"\"" `shouldBe` Right (Lit $ String "")
       parse "\"Hello\"" `shouldBe` Right (Lit $ String "Hello")
       parse "\"hello, world\"" `shouldBe` Right (Lit $ String "hello, world")
+
+    -- Symbol.
+    it "parses symbol" $ do
+      parse "+" `shouldBe` Right (Sym "+")
+      parse "*" `shouldBe` Right (Sym "*")
+      parse "-" `shouldBe` Right (Sym "-")
+      parse "+special+" `shouldBe` Right (Sym "+special+")
+      parse "*special*" `shouldBe` Right (Sym "*special*")
+      parse "here->there" `shouldBe` Right (Sym "here->there")
+      parse "hello" `shouldBe` Right (Sym "hello")
+
+    -- List.
+    it "parses list" $ do
+      parse "(1)" `shouldBe` Right (List [Lit (Fixnum 1)])
+      parse "( 1 )" `shouldBe` Right (List [Lit (Fixnum 1)])
+      parse "(1 2)" `shouldBe` Right (List [Lit (Fixnum 1), Lit (Fixnum 2)])
+      parse "(1 ())" `shouldBe` Right (List [Lit (Fixnum 1), Nil])
+      parse "(+ \"hello\" 1)" `shouldBe` Right (List [Sym "+", Lit (String "hello"), Lit (Fixnum 1)])
