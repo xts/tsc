@@ -21,7 +21,6 @@ link source out = do
   withSystemTempDirectory "tsc.work" $ \dir -> do
     let srcPath = dir <> "/program.s"
         rtsPath = dir <> "/rts.c"
-    lift $ print srcPath
     lift $ BS.writeFile srcPath source
     lift $ BS.writeFile rtsPath rts
     (rc, _, stderr) <- readProcess (proc "clang" [rtsPath, srcPath, "-o", out])

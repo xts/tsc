@@ -25,7 +25,7 @@ spec = do
       parse "1073741823" `shouldBe` Right (Lit $ Fixnum 1073741823)
 
     -- String.
-    it "parser string" $ do
+    it "parses string" $ do
       parse "\"\"" `shouldBe` Right (Lit $ String "")
       parse "\"Hello\"" `shouldBe` Right (Lit $ String "Hello")
       parse "\"hello, world\"" `shouldBe` Right (Lit $ String "hello, world")

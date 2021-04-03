@@ -18,7 +18,9 @@ compile options = runExceptT pipeline
   where
     pipeline :: ExceptT String IO ()
     pipeline = do
-      source <- lift $ readFile (optSource options)
+      source <- case optSource options of
+        Source text -> pure text
+        File path -> lift $ readFile path
 
       ast <- except $ parse source
       maybeEmitAst ast

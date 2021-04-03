@@ -50,7 +50,7 @@ void print_value(void* value) {
     } else if (is_char(value)) {
         printf("%c", from_char(value));
     } else if (is_nil(value)) {
-        printf("nil");
+        printf("()");
     } else {
         printf("Invalid value: %p", value);
     }
