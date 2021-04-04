@@ -7,20 +7,46 @@ import Data.ByteString.UTF8 (fromString)
 
 import Core.AST
 
+data Code
+  = Code ByteString
+  | Error String
+
+instance Semigroup Code where
+  (<>) = mappend
+
+instance Monoid Code where
+  mempty = Code mempty
+  Error e  `mappend` _       = Error e
+  Code _   `mappend` Error e = Error e
+  Code a   `mappend` Code b  = Code (a <> b)
+
+toEither :: Code -> Either String ByteString
+toEither (Code c)  = Right c
+toEither (Error e) = Left e
+
 lower :: Expr -> Either String ByteString
-lower expression = Right $
+lower expression = toEither $
   prologue "_entry_function"
   <> expr expression
   <> epilogue
 
-expr :: Expr -> ByteString
-expr (Lit (Fixnum n))   = ins $ "movl $" <> fromString (show $ n * 4) <> ", %eax"
-expr (Lit (Bool True))  = ins "movl $0x2f, %eax"
-expr (Lit (Bool False)) = ins "movl $0x6f, %eax"
-expr Nil                = ins "movl $0x3f, %eax"
-expr _                  = error "Implement me"
+expr :: Expr -> Code
+expr Nil           = ins "movl $0x3f, %eax"
+expr (Lit lit)     = literal lit
+expr (List (x:xs)) = call x xs
+expr e             = Error $ "Unable to lower " <> show e
 
-prologue :: ByteString -> ByteString
+literal :: Literal -> Code
+literal (Fixnum n)   = ins $ "movl $" <> fromString (show $ n * 4) <> ", %eax"
+literal (Bool True)  = ins "movl $0x2f, %eax"
+literal (Bool False) = ins "movl $0x6f, %eax"
+literal e            = Error $ "Unable to encode " <> show e
+
+call :: Expr -> [Expr] -> Code
+call (Sym _f) _args = Error "implement call"
+call e        _     = Error $ "can't call " <> show e
+
+prologue :: ByteString -> Code
 prologue sym =
   dir "text"
   <> dir ("globl " <> sym)
@@ -30,20 +56,20 @@ prologue sym =
   <> ins "pushq %rbp"
   <> ins "movq %rsp, %rbp"
 
-epilogue :: ByteString
+epilogue :: Code
 epilogue =
   ins "popq %rbp"
   <> ins "retq"
   <> dir "cfi_endproc"
 
-ins :: ByteString -> ByteString
-ins text = indent <> text <> "\n"
+ins :: ByteString -> Code
+ins text = Code $ indent <> text <> "\n"
 
-dir :: ByteString -> ByteString
-dir name = indent <> "." <> name <> "\n"
+dir :: ByteString -> Code
+dir name = Code $ indent <> "." <> name <> "\n"
 
-label :: ByteString -> ByteString
-label sym = sym <> ":\n"
+label :: ByteString -> Code
+label sym = Code $ sym <> ":\n"
 
 indent :: ByteString
 indent = "    "
