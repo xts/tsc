@@ -11,8 +11,9 @@ import Core.Code
 
 lower :: Expr -> Either String ByteString
 lower expression = toEither $
-  prologue "_entry_function"
+  prologue "_main"
   <> expr expression
+  <> ins "xorl %eax, %eax"
   <> epilogue
 
 expr :: Expr -> Code

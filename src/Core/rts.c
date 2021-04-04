@@ -56,7 +56,3 @@ void print(void* value) {
     }
     printf("\n");
 }
-
-int main() {
-    entry_function();
-}
