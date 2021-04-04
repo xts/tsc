@@ -7,23 +7,7 @@ import Data.ByteString.UTF8 (fromString)
 import Data.Char (isAscii, ord)
 
 import Core.AST
-
-data Code
-  = Code ByteString
-  | Error String
-
-instance Semigroup Code where
-  (<>) = mappend
-
-instance Monoid Code where
-  mempty = Code mempty
-  Error e  `mappend` _       = Error e
-  Code _   `mappend` Error e = Error e
-  Code a   `mappend` Code b  = Code (a <> b)
-
-toEither :: Code -> Either String ByteString
-toEither (Code c)  = Right c
-toEither (Error e) = Left e
+import Core.Code
 
 lower :: Expr -> Either String ByteString
 lower expression = toEither $
@@ -50,12 +34,8 @@ encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
 call :: Expr -> [Expr] -> Code
-call (Sym "print") [e] =
-  expr e
-  <> ins "movl %eax, %edi"
-  <> ins "callq _print"
-call (Sym "print") es  = Error $ "print expects one parameter, not " <> show (length es)
-call e        _        = Error $ "can't call " <> show e
+call (Sym "print") es = primPrint es
+call e             _  = Error $ "can't call " <> show e
 
 prologue :: ByteString -> Code
 prologue sym =
@@ -71,14 +51,9 @@ epilogue =
   ins "popq %rbp"
   <> ins "retq"
 
-ins :: ByteString -> Code
-ins text = Code $ indent <> text <> "\n"
-
-dir :: ByteString -> Code
-dir name = Code $ indent <> "." <> name <> "\n"
-
-label :: ByteString -> Code
-label sym = Code $ sym <> ":\n"
-
-indent :: ByteString
-indent = "    "
+primPrint :: [Expr] -> Code
+primPrint [e] =
+  expr e
+  <> ins "movl %eax, %edi"
+  <> ins "callq _print"
+primPrint es = Error $ "print expects 1 parameter, received " <> show (length es)
