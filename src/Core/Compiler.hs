@@ -3,7 +3,7 @@ module Core.Compiler
   ) where
 
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Except (ExceptT, except, runExceptT, throwE)
+import Control.Monad.Trans.Except (except, runExceptT, throwE)
 import Data.Text.IO (readFile)
 import Data.ByteString.UTF8 (toString)
 import Prelude hiding (lex, readFile)
@@ -17,11 +17,10 @@ import Core.Linker
 compile :: Options -> IO (Either String ())
 compile options = runExceptT pipeline
   where
-    pipeline :: ExceptT String IO ()
     pipeline = do
       source <- case optSource options of
         Source text -> pure text
-        File path -> lift $ readFile path
+        File path   -> lift $ readFile path
 
       tokens <- except $ lex source
       ast    <- except $ parse tokens
