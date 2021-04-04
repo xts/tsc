@@ -43,8 +43,12 @@ literal (Bool False) = ins "movl $0x6f, %eax"
 literal e            = Error $ "Unable to encode " <> show e
 
 call :: Expr -> [Expr] -> Code
-call (Sym _f) _args = Error "implement call"
-call e        _     = Error $ "can't call " <> show e
+call (Sym "print") [e] =
+  expr e
+  <> ins "movl %eax, %edi"
+  <> ins "callq _print"
+call (Sym "print") es  = Error $ "print expects one parameter, not " <> show (length es)
+call e        _        = Error $ "can't call " <> show e
 
 prologue :: ByteString -> Code
 prologue sym =
@@ -52,7 +56,6 @@ prologue sym =
   <> dir ("globl " <> sym)
   <> dir "p2align 4, 0x90"
   <> label sym
-  <> dir "cfi_startproc"
   <> ins "pushq %rbp"
   <> ins "movq %rsp, %rbp"
 
@@ -60,7 +63,6 @@ epilogue :: Code
 epilogue =
   ins "popq %rbp"
   <> ins "retq"
-  <> dir "cfi_endproc"
 
 ins :: ByteString -> Code
 ins text = Code $ indent <> text <> "\n"

@@ -40,7 +40,7 @@ char from_char(void *value) {
     return ((int)(value) >> 8) & 0xff;
 }
 
-void print_value(void* value) {
+void print(void* value) {
     if (is_fixnum(value)) {
         printf("%d", from_fixnum(value));
     } else if (is_true(value)) {
@@ -54,9 +54,9 @@ void print_value(void* value) {
     } else {
         printf("Invalid value: %p", value);
     }
+    printf("\n");
 }
 
 int main() {
-    print_value(entry_function());
-    printf("\n");
+    entry_function();
 }
