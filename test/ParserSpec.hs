@@ -25,6 +25,11 @@ spec = do
       parse "#t" `shouldBe` Right (Lit $ Bool True)
       parse "#f" `shouldBe` Right (Lit $ Bool False)
 
+    -- Char.
+    it "parses char" $ do
+      parse "#\\a" `shouldBe` Right (Lit $ Char 'a')
+      parse "#\\Z" `shouldBe` Right (Lit $ Char 'Z')
+
     -- Fixnum.
     it "parses fixnum" $ do
       parse "0" `shouldBe` Right (Lit $ Fixnum 0)
