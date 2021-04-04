@@ -42,6 +42,12 @@ spec = do
       running "(print -536870912)" `shouldReturn` "-536870912"
       running "(print 536870911)" `shouldReturn` "536870911"
 
+    -- Char.
+    it "compiles char" $ do
+      running "(print #\\a)" `shouldReturn` "a"
+      running "(print #\\Z)" `shouldReturn` "Z"
+      running "(print #\\0)" `shouldReturn` "0"
+
 {--
     -- String.
     it "compiles string" $ do

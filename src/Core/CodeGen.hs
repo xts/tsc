@@ -4,6 +4,7 @@ module Core.CodeGen
 
 import Data.ByteString (ByteString)
 import Data.ByteString.UTF8 (fromString)
+import Data.Char (isAscii, ord)
 
 import Core.AST
 
@@ -37,10 +38,16 @@ expr (List (x:xs)) = call x xs
 expr e             = Error $ "Unable to lower " <> show e
 
 literal :: Literal -> Code
-literal (Fixnum n)   = ins $ "movl $" <> fromString (show $ n * 4) <> ", %eax"
+literal n@(Fixnum _) = ins $ "movl $" <> encode n <> ", %eax"
 literal (Bool True)  = ins "movl $0x2f, %eax"
 literal (Bool False) = ins "movl $0x6f, %eax"
+literal c@(Char _)   = ins $ "movl $" <> encode c <> ", %eax"
 literal e            = Error $ "Unable to encode " <> show e
+
+encode :: Literal -> ByteString
+encode (Fixnum n)           = fromString $ show $ n * 4
+encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
+encode l                    = error $ "Unable to encode literal " <> show l
 
 call :: Expr -> [Expr] -> Code
 call (Sym "print") [e] =
