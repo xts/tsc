@@ -53,6 +53,7 @@ spec = do
       running "(print (+ 2 2))" `shouldReturn` "4"
       running "(print (+ -1 1))" `shouldReturn` "0"
       running "(print (- 2 2))" `shouldReturn` "0"
+      running "(print (+ 2 (- 4 7)))" `shouldReturn` "-1"
 
 {--
     -- String.
