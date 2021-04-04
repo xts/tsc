@@ -20,7 +20,7 @@ running source = withSystemTempFile "a.out" $ \path _ ->
       (rc, stdout, _) <- readProcess (proc path [])
       case rc of
         ExitSuccess   -> pure $ toString $ strip $ BS.toStrict stdout
-        ExitFailure _ -> pure "Failed to running program"
+        ExitFailure _ -> pure "Failed to run program"
 
 spec :: Spec
 spec = do
@@ -47,6 +47,12 @@ spec = do
       running "(print #\\a)" `shouldReturn` "a"
       running "(print #\\Z)" `shouldReturn` "Z"
       running "(print #\\0)" `shouldReturn` "0"
+
+    -- Add.
+    it "compiles arithmetic" $ do
+      running "(print (+ 2 2))" `shouldReturn` "4"
+      running "(print (+ -1 1))" `shouldReturn` "0"
+      running "(print (- 2 2))" `shouldReturn` "0"
 
 {--
     -- String.

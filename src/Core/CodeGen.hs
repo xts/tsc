@@ -35,6 +35,8 @@ encode l                    = error $ "Unable to encode literal " <> show l
 
 call :: Expr -> [Expr] -> Code
 call (Sym "print") es = primPrint es
+call (Sym "+")     es = primAdd es
+call (Sym "-")     es = primSub es
 call e             _  = Error $ "can't call " <> show e
 
 prologue :: ByteString -> Code
@@ -45,10 +47,12 @@ prologue sym =
   <> label sym
   <> ins "pushq %rbp"
   <> ins "movq %rsp, %rbp"
+  <> ins "subq $16, %rsp"
 
 epilogue :: Code
 epilogue =
-  ins "popq %rbp"
+  ins "addq $16, %rsp"
+  <> ins "popq %rbp"
   <> ins "retq"
 
 primPrint :: [Expr] -> Code
@@ -57,3 +61,19 @@ primPrint [e] =
   <> ins "movl %eax, %edi"
   <> ins "callq _print"
 primPrint es = Error $ "print expects 1 parameter, received " <> show (length es)
+
+primAdd :: [Expr] -> Code
+primAdd [a, b] =
+  expr a
+  <> ins "movl %eax, -4(%rbp)"
+  <> expr b
+  <> ins "addl -4(%rbp), %eax"
+primAdd es = Error $ "+ expects 2 parameters, received " <> show (length es)
+
+primSub :: [Expr] -> Code
+primSub [a, b] =
+  expr a
+  <> ins "movl %eax, -4(%rbp)"
+  <> expr b
+  <> ins "subl -4(%rbp), %eax"
+primSub es = Error $ "- expects 2 parameters, received " <> show (length es)
