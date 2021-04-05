@@ -70,3 +70,10 @@ spec = do
       running "(print (if #f 1 0))" `shouldReturn` "0"
       running "(print (if #t 1))" `shouldReturn` "1"
       running "(if #f (print 0))" `shouldReturn` ""
+
+    -- Less than.
+    it "compiles less-than" $ do
+      running "(print (< 1 2))" `shouldReturn` "#t"
+      running "(print (< 2 1))" `shouldReturn` "#f"
+      running "(print (< -1 0))" `shouldReturn` "#t"
+      running "(print (< -1 -2))" `shouldReturn` "#f"

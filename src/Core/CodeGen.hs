@@ -143,6 +143,7 @@ call (Sym "print") es = primPrint es
 call (Sym "+")     es = primAdd es
 call (Sym "-")     es = primSub es
 call (Sym "if")    es = formIf es
+call (Sym "<")     es = primLessThan es
 call e             _  = throwError $ "can't call " <> show e
 
 prologue :: ByteString -> Int -> CodeGen ()
@@ -208,3 +209,13 @@ primSub [a, b] = do
     expr a
     ins $ "subq " <> slot <> "(%rbp), %rax"
 primSub es = throwError $ "- expects 2 parameters, received " <> show (length es)
+
+primLessThan :: [Expr] -> CodeGen ()
+primLessThan [a, b] = do
+  lab <- funLabel
+  primSub [a, b]
+  literal $ Bool False
+  ins $ "jg " <> lab
+  literal $ Bool True
+  label lab
+primLessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)

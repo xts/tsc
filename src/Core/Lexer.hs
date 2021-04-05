@@ -45,7 +45,7 @@ sym = Symbol . pack <$> lexeme (try special <|> try short <|> normal)
       pure $ a : b : c
 
     -- Single-character symbols such as +, -, *, /.
-    short = (:[]) <$> (char '*' <|> char '/' <|> char '+' <|> char '-')
+    short = (:[]) <$> (char '*' <|> char '/' <|> char '+' <|> char '-' <|> char '<' <|> char '>' <|> char '=')
 
     -- Normal identifiers starting with a letter.
     normal = do
