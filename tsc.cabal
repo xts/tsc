@@ -11,6 +11,7 @@ common shared
   default-language: Haskell2010
   default-extensions:
     GADTs,
+    GeneralizedNewtypeDeriving,
     LambdaCase,
     ImportQualifiedPost,
     OverloadedStrings,
@@ -34,9 +35,11 @@ library
   build-depends:
     base          ^>= 4.14,
     bytestring    ^>= 0.11,
+    containers    ^>= 0.6,
     either        ^>= 5.0,
     file-embed    ^>= 0.0,
     megaparsec    ^>= 9.0,
+    mtl           ^>= 2.2,
     temporary     ^>= 1.3,
     text          ^>= 1.2,
     transformers  ^>= 0.5,
