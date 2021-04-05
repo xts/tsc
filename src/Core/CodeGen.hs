@@ -2,8 +2,8 @@ module Core.CodeGen
   ( lower
   ) where
 
-import Control.Monad (forM_)
-import Control.Monad.RWS (RWST, execRWST, tell, get, modify)
+import Control.Monad (forM_, when)
+import Control.Monad.RWS (RWST, execRWST, ask, tell, get, modify)
 import Control.Monad.Except (Except, runExcept, throwError)
 
 import Data.ByteString (ByteString)
@@ -34,7 +34,7 @@ runCodeGen :: Text -> CodeGen () -> Either String (Allocations, ByteString)
 runCodeGen ctx f = runExcept $ execRWST f env state
   where
     env   = Env Map.empty ctx
-    state = Allocations 1 2 Map.empty 0
+    state = Allocations 0 0 Map.empty 0
 
 emit :: ByteString -> CodeGen ()
 emit = tell
@@ -53,12 +53,12 @@ setStack sp = do
   modify $ \st -> st { stCurStack = sp, stMaxStack = max maxSp sp }
 
 stackSlot :: Int -> ByteString
-stackSlot = fromString . show . ((-8) *)
+stackSlot = fromString . show . ((-8) *) . succ
 
 stackSpace :: Allocations -> Int
 stackSpace = to16s . (8*) . stMaxStack
   where
-    to16s n = n + 16 - n `rem` 16
+    to16s n = let r = n `rem` 16 in if r == 0 then n else n + 16 - r
 
 stringLabel :: Text -> CodeGen Text
 stringLabel text = do
@@ -70,9 +70,17 @@ stringLabel text = do
       modify $ \st -> st { _stStringLabels = Map.insert text lab labels }
       pure lab
 
+funLabel :: CodeGen ByteString
+funLabel = do
+  context <- _envContext <$> ask
+  n <- _stNextLabel <$> get
+  modify $ \st -> st { _stNextLabel = succ n }
+  pure $ encodeUtf8 context <> "_" <> fromString (show n)
+
 strings :: Map Text Text -> CodeGen ()
 strings labels = do
   forM_ (Map.toList labels) $ \(k, v) -> do
+    sep
     dir $ "globl " <> encodeUtf8 v
     dir "p2align 4, 0x90"
     label $ encodeUtf8 v
@@ -80,6 +88,9 @@ strings labels = do
 
 ins :: ByteString -> CodeGen ()
 ins text = emit $ indent <> text <> "\n"
+
+sep :: CodeGen ()
+sep = emit "\n"
 
 dir :: ByteString -> CodeGen ()
 dir name = emit $ indent <> "." <> name <> "\n"
@@ -131,6 +142,7 @@ call :: Expr -> [Expr] -> CodeGen ()
 call (Sym "print") es = primPrint es
 call (Sym "+")     es = primAdd es
 call (Sym "-")     es = primSub es
+call (Sym "if")    es = formIf es
 call e             _  = throwError $ "can't call " <> show e
 
 prologue :: ByteString -> Int -> CodeGen ()
@@ -141,13 +153,36 @@ prologue sym space = do
   label sym
   ins "pushq %rbp"
   ins "movq %rsp, %rbp"
-  ins $ "subq $" <> fromString (show space) <> ", %rsp"
+  when (space > 0) $
+    ins $ "subq $" <> fromString (show space) <> ", %rsp"
 
 epilogue :: Int -> CodeGen ()
 epilogue space = do
-  ins $ "addq $" <> fromString (show space) <> ", %rsp"
+  when (space > 0) $
+    ins $ "addq $" <> fromString (show space) <> ", %rsp"
   ins "popq %rbp"
   ins "retq"
+
+formIf :: [Expr] -> CodeGen ()
+formIf [cond, t, f] = do
+  labFalse <- funLabel
+  labEnd   <- funLabel
+  expr cond
+  ins "cmpq $0x6f, %rax"
+  ins $ "jz " <> labFalse
+  expr t
+  ins $ "jmp " <> labEnd
+  label labFalse
+  expr f
+  label labEnd
+formIf [cond, t] = do
+  labFalse <- funLabel
+  expr cond
+  ins "cmpq $0x6f, %rax"
+  ins $ "jz " <> labFalse
+  expr t
+  label labFalse
+formIf es = throwError $ "if expects two or three arguments, received " <> show (length es)
 
 primPrint :: [Expr] -> CodeGen ()
 primPrint [e] = do

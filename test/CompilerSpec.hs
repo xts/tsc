@@ -60,3 +60,13 @@ spec = do
       running "(print \"\")" `shouldReturn` ""
       running "(print \"Hello\")" `shouldReturn` "Hello"
       running "(print \"hello, world\")" `shouldReturn` "hello, world"
+
+    -- If.
+    it "compiles if" $ do
+      running "(if #t (print 1) (print 0))" `shouldReturn` "1"
+      running "(print (if #t 1 0))" `shouldReturn` "1"
+      running "(print (if 0 1 0))" `shouldReturn` "1"
+      running "(print (if \"\" 1 0))" `shouldReturn` "1"
+      running "(print (if #f 1 0))" `shouldReturn` "0"
+      running "(print (if #t 1))" `shouldReturn` "1"
+      running "(if #f (print 0))" `shouldReturn` ""

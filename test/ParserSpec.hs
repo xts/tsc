@@ -65,3 +65,6 @@ spec = do
       parse "(1 2)" `shouldBe` Right (List [Lit (Fixnum 1), Lit (Fixnum 2)])
       parse "(1 ())" `shouldBe` Right (List [Lit (Fixnum 1), Nil])
       parse "(+ \"hello\" 1)" `shouldBe` Right (List [Sym "+", Lit (String "hello"), Lit (Fixnum 1)])
+
+    it "parses if" $ do
+      parse "(if #t 1 0)" `shouldBe` Right (List [Sym "if", Lit $ Bool True, Lit $ Fixnum 1, Lit $ Fixnum 0])
