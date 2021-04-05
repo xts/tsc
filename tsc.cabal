@@ -24,7 +24,6 @@ library
   hs-source-dirs:  src
   exposed-modules:
     Core.AST,
-    Core.Code,
     Core.CodeGen,
     Core.Compiler,
     Core.Lexer,

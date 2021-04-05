@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-void* entry_function();
-
 #define CHAR_MASK 0xf
 #define FIXNUM_MASK 0x3
 #define BOOLEAN_TRUE 0x2f
@@ -32,12 +30,20 @@ int is_char(void *value) {
     return ((int)value & 0xff) == CHAR_MASK;
 }
 
+int is_string(void *value) {
+    return ((int)value & 0x3) == 0x3;
+}
+
 int from_fixnum(void *value) {
     return (int)(value) >> 2;
 }
 
 char from_char(void *value) {
     return ((int)(value) >> 8) & 0xff;
+}
+
+const char *from_string(void *value) {
+    return (const char *)((uintptr_t)(value) & ~3);
 }
 
 void print(void* value) {
@@ -51,6 +57,8 @@ void print(void* value) {
         printf("%c", from_char(value));
     } else if (is_nil(value)) {
         printf("()");
+    } else if (is_string(value)) {
+        printf("%s", from_string(value));
     } else {
         printf("Invalid value: %p", value);
     }

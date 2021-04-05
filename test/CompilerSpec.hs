@@ -55,10 +55,8 @@ spec = do
       running "(print (- 2 2))" `shouldReturn` "0"
       running "(print (+ 2 (- 4 7)))" `shouldReturn` "-1"
 
-{--
     -- String.
     it "compiles string" $ do
-      running "\"\"" `shouldReturn` ""
-      running "\"Hello\"" `shouldReturn` "Hello"
-      running "\"hello, world\"" `shouldReturn` "hello, world"
---}
+      running "(print \"\")" `shouldReturn` ""
+      running "(print \"Hello\")" `shouldReturn` "Hello"
+      running "(print \"hello, world\")" `shouldReturn` "hello, world"

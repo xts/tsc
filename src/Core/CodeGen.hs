@@ -1,25 +1,18 @@
--- Need ability to convert strings to constants
-{--
-literal :: Literal -> Code
-literal (String s) = do
-    label <- registerString s
-    ins $ "movq " <> label <> "(%rip), %eax"
---}
-
 module Core.CodeGen
   ( lower
   ) where
 
+import Control.Monad (forM_)
 import Control.Monad.RWS (RWST, execRWST, tell, get, modify)
 import Control.Monad.Except (Except, runExcept, throwError)
 
 import Data.ByteString (ByteString)
 import Data.ByteString.UTF8 (fromString)
 import Data.Char (isAscii, ord)
-import Data.Either.Combinators (mapRight)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Text (Text)
+import Data.Text (Text, pack)
+import Data.Text.Encoding (encodeUtf8)
 
 import Core.AST
 
@@ -60,7 +53,30 @@ setStack sp = do
   modify $ \st -> st { stCurStack = sp, stMaxStack = max maxSp sp }
 
 stackSlot :: Int -> ByteString
-stackSlot = fromString . show . ((-4) *) . succ
+stackSlot = fromString . show . ((-8) *)
+
+stackSpace :: Allocations -> Int
+stackSpace = to16s . (8*) . stMaxStack
+  where
+    to16s n = n + 16 - n `rem` 16
+
+stringLabel :: Text -> CodeGen Text
+stringLabel text = do
+  labels <- _stStringLabels <$> get
+  case Map.lookup text labels of
+    Just lab -> pure lab
+    Nothing    -> do
+      let lab = "_string_" <> pack (show $ Map.size labels)
+      modify $ \st -> st { _stStringLabels = Map.insert text lab labels }
+      pure lab
+
+strings :: Map Text Text -> CodeGen ()
+strings labels = do
+  forM_ (Map.toList labels) $ \(k, v) -> do
+    dir $ "globl " <> encodeUtf8 v
+    dir "p2align 4, 0x90"
+    label $ encodeUtf8 v
+    dir $ "asciz \"" <> encodeUtf8 k <> "\""
 
 ins :: ByteString -> CodeGen ()
 ins text = emit $ indent <> text <> "\n"
@@ -75,26 +91,36 @@ indent :: ByteString
 indent = "    "
 
 lower :: Expr -> Either String ByteString
-lower expression = do
-  (alloc, code) <- runCodeGen "_main" $ expr expression
-  mapRight snd $ runCodeGen "_main" $ do
-    prologue "_main" (stMaxStack alloc)
-    emit code
-    ins "xorl %eax, %eax"
-    epilogue (stMaxStack alloc)
+lower e = do
+  (alloc, code)   <- function "_main" e
+  (_, stringData) <- runCodeGen mempty $ strings $ _stStringLabels alloc
+  pure $ code <> stringData
+
+function :: Text -> Expr -> Either String (Allocations, ByteString)
+function name e = do
+  (alloc, body) <- runCodeGen name $ expr e
+  (_, func) <- runCodeGen name $ do
+    prologue (encodeUtf8 name) (stackSpace alloc)
+    emit body
+    ins "xorq %rax, %rax"
+    epilogue (stackSpace alloc)
+  pure (alloc, func)
 
 expr :: Expr -> CodeGen ()
-expr Nil           = ins "movl $0x3f, %eax"
+expr Nil           = ins "movq $0x3f, %rax"
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = call x xs
 expr e             = throwError $ "Unable to lower " <> show e
 
 literal :: Literal -> CodeGen ()
-literal n@(Fixnum _) = ins $ "movl $" <> encode n <> ", %eax"
-literal (Bool True)  = ins "movl $0x2f, %eax"
-literal (Bool False) = ins "movl $0x6f, %eax"
-literal c@(Char _)   = ins $ "movl $" <> encode c <> ", %eax"
-literal e            = throwError $ "Unable to encode " <> show e
+literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
+literal (Bool True)  = ins "movq $0x2f, %rax"
+literal (Bool False) = ins "movq $0x6f, %rax"
+literal c@(Char _)   = ins $ "movq $" <> encode c <> ", %rax"
+literal (String s)   = do
+  lab <- stringLabel s
+  ins $ "leaq " <> encodeUtf8 lab <> "(%rip), %rax"
+  ins "orq $3, %rax"
 
 encode :: Literal -> ByteString
 encode (Fixnum n)           = fromString $ show $ n * 4
@@ -108,25 +134,25 @@ call (Sym "-")     es = primSub es
 call e             _  = throwError $ "can't call " <> show e
 
 prologue :: ByteString -> Int -> CodeGen ()
-prologue sym stackSpace = do
+prologue sym space = do
   dir "text"
   dir $ "globl " <> sym
   dir "p2align 4, 0x90"
   label sym
   ins "pushq %rbp"
   ins "movq %rsp, %rbp"
-  ins $ "subq $" <> fromString (show $ stackSpace * 8) <> ", %rsp"
+  ins $ "subq $" <> fromString (show space) <> ", %rsp"
 
 epilogue :: Int -> CodeGen ()
-epilogue stackSpace = do
-  ins $ "addq $" <> fromString (show $ stackSpace * 8) <> ", %rsp"
+epilogue space = do
+  ins $ "addq $" <> fromString (show space) <> ", %rsp"
   ins "popq %rbp"
   ins "retq"
 
 primPrint :: [Expr] -> CodeGen ()
 primPrint [e] = do
   expr e
-  ins "movl %eax, %edi"
+  ins "movq %rax, %rdi"
   ins "callq _print"
 primPrint es = throwError $ "print expects 1 parameter, received " <> show (length es)
 
@@ -134,16 +160,16 @@ primAdd :: [Expr] -> CodeGen ()
 primAdd [a, b] = do
   expr a
   withStackSlot $ \slot -> do
-    ins $ "movl %eax, " <> slot <> "(%rbp)"
+    ins $ "movq %rax, " <> slot <> "(%rbp)"
     expr b
-    ins $ "addl " <> slot <> "(%rbp), %eax"
+    ins $ "addq " <> slot <> "(%rbp), %rax"
 primAdd es = throwError $ "+ expects 2 parameters, received " <> show (length es)
 
 primSub :: [Expr] -> CodeGen ()
 primSub [a, b] = do
   expr b
   withStackSlot $ \slot -> do
-    ins $ "movl %eax, " <> slot <> "(%rbp)"
+    ins $ "movq %rax, " <> slot <> "(%rbp)"
     expr a
-    ins $ "subl " <> slot <> "(%rbp), %eax"
+    ins $ "subq " <> slot <> "(%rbp), %rax"
 primSub es = throwError $ "- expects 2 parameters, received " <> show (length es)
