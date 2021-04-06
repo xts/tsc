@@ -35,24 +35,21 @@ number = Number <$> L.signed (pure ()) (lexeme L.decimal)
 
 -- | Read a symbol.
 sym :: Parser Token
-sym = Symbol . pack <$> lexeme (try special <|> try short <|> normal)
+sym = Symbol . pack <$> lexeme (try special <|> normal)
   where
-    -- Symbol starting with a special character.
+    -- Symbol that could be mistaken for a number.
     special = do
-      a <- char '+' <|> char '*'
-      b <- letterChar
-      c <- rest
-      pure $ a : b : c
+      a <- symChar
+      notFollowedBy digitChar
+      b <- many (alphaNumChar <|> symChar)
+      pure $ a : b
 
-    -- Single-character symbols such as +, -, *, /.
-    short = (:[]) <$> (char '*' <|> char '/' <|> char '+' <|> char '-' <|> char '<' <|> char '>' <|> char '=')
-
-    -- Normal identifiers starting with a letter.
     normal = do
       a <- letterChar
-      b <- rest
+      b <- many (alphaNumChar <|> symChar)
       pure $ a : b
-    rest = many (alphaNumChar <|> symbolChar <|> punctuationChar)
+
+    symChar = char '*' <|> char '/' <|> char '+' <|> char '-' <|> char '<' <|> char '>' <|> char '='
 
 -- | Read a char, handling escaped characters.
 charLiteral :: Parser Token
