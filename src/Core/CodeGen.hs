@@ -18,14 +18,15 @@ import Core.AST
 
 data Env = Env
   { _envFunctions :: Map Text Text -- ^ Function name -> function label.
-  , _envContext   :: Text          -- ^ Current function.
+  , envContext    :: Text          -- ^ Current function.
   }
 
 data Allocations = Allocations
-  { stCurStack     :: Int
-  , stMaxStack     :: Int
-  , _stStringLabels :: Map Text Text
-  , _stNextLabel    :: Int
+  { stCurStack     :: Int            -- ^ Next free stack slot.
+  , stMaxStack     :: Int            -- ^ Peak stack usage.
+  , stStringLabels :: Map Text Text  -- ^ Constant string -> string label.
+  , stNextLabel    :: Int            -- ^ Suffix of next local code label.
+  , stVariables    :: Map Text Int   -- ^ Variable name -> stack index.
   }
 
 type CodeGen a = RWST Env ByteString Allocations (Except String) a
@@ -34,17 +35,40 @@ runCodeGen :: Text -> CodeGen () -> Either String (Allocations, ByteString)
 runCodeGen ctx f = runExcept $ execRWST f env state
   where
     env   = Env Map.empty ctx
-    state = Allocations 0 0 Map.empty 0
+    state = Allocations 0 0 Map.empty 0 Map.empty
 
 emit :: ByteString -> CodeGen ()
 emit = tell
 
-withStackSlot :: (ByteString -> CodeGen a) -> CodeGen a
-withStackSlot f = do
+addVariable :: Text -> Int -> CodeGen ()
+addVariable name slot = do
+  vars <- stVariables <$> get
+  modify $ \st -> st { stVariables = Map.insert name slot vars }
+
+delVariable :: Text -> CodeGen ()
+delVariable name = do
+  vars <- stVariables <$> get
+  modify $ \st -> st { stVariables = Map.delete name vars }
+
+lookupVariable :: Text -> CodeGen (Maybe Int)
+lookupVariable name = Map.lookup name . stVariables <$> get
+
+allocStackSlot :: CodeGen Int
+allocStackSlot = do
   sp <- stCurStack <$> get
   setStack (succ sp)
+  pure sp
+
+freeStackSlot :: CodeGen ()
+freeStackSlot = do
+  sp <- stCurStack <$> get
+  setStack (pred sp)
+
+withStackSlot :: (ByteString -> CodeGen a) -> CodeGen a
+withStackSlot f = do
+  sp <- allocStackSlot
   ret <- f (stackSlot sp)
-  setStack sp
+  freeStackSlot
   pure ret
 
 setStack :: Int -> CodeGen ()
@@ -62,19 +86,19 @@ stackSpace = to16s . (8*) . stMaxStack
 
 stringLabel :: Text -> CodeGen Text
 stringLabel text = do
-  labels <- _stStringLabels <$> get
+  labels <- stStringLabels <$> get
   case Map.lookup text labels of
     Just lab -> pure lab
     Nothing    -> do
       let lab = "_string_" <> pack (show $ Map.size labels)
-      modify $ \st -> st { _stStringLabels = Map.insert text lab labels }
+      modify $ \st -> st { stStringLabels = Map.insert text lab labels }
       pure lab
 
 funLabel :: CodeGen ByteString
 funLabel = do
-  context <- _envContext <$> ask
-  n <- _stNextLabel <$> get
-  modify $ \st -> st { _stNextLabel = succ n }
+  context <- envContext <$> ask
+  n <- stNextLabel <$> get
+  modify $ \st -> st { stNextLabel = succ n }
   pure $ encodeUtf8 context <> "_" <> fromString (show n)
 
 strings :: Map Text Text -> CodeGen ()
@@ -104,14 +128,14 @@ indent = "    "
 lower :: Expr -> Either String ByteString
 lower e = do
   (alloc, code)   <- function "_main" e
-  (_, stringData) <- runCodeGen mempty $ strings $ _stStringLabels alloc
+  (_, stringData) <- runCodeGen mempty $ strings $ stStringLabels alloc
   pure $ code <> stringData
 
 function :: Text -> Expr -> Either String (Allocations, ByteString)
 function name e = do
   (alloc, body) <- runCodeGen name $ expr e
   (_, func) <- runCodeGen name $ do
-    prologue (encodeUtf8 name) (stackSpace alloc)
+    prologue (stackSpace alloc)
     emit body
     ins "xorq %rax, %rax"
     epilogue (stackSpace alloc)
@@ -120,7 +144,10 @@ function name e = do
 expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"
 expr (Lit lit)     = literal lit
-expr (List (x:xs)) = call x xs
+expr (List (x:xs)) = form x xs
+expr (Sym s)       = lookupVariable s >>= \case
+  Just slot -> ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
+  Nothing   -> throwError $ "no such binding " <> show s
 expr e             = throwError $ "Unable to lower " <> show e
 
 literal :: Literal -> CodeGen ()
@@ -138,20 +165,22 @@ encode (Fixnum n)           = fromString $ show $ n * 4
 encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
-call :: Expr -> [Expr] -> CodeGen ()
-call (Sym "print") es = primPrint es
-call (Sym "+")     es = primAdd es
-call (Sym "-")     es = primSub es
-call (Sym "if")    es = formIf es
-call (Sym "<")     es = primLessThan es
-call e             _  = throwError $ "can't call " <> show e
+form :: Expr -> [Expr] -> CodeGen ()
+form (Sym "if")    es = formIf es
+form (Sym "let")   es = formLet es
+form (Sym "print") es = primPrint es
+form (Sym "+")     es = primAdd es
+form (Sym "-")     es = primSub es
+form (Sym "<")     es = primLessThan es
+form e             _  = throwError $ "don't know how to evaluate form " <> show e
 
-prologue :: ByteString -> Int -> CodeGen ()
-prologue sym space = do
+prologue :: Int -> CodeGen ()
+prologue space = do
+  name <- encodeUtf8 . envContext <$> ask
   dir "text"
-  dir $ "globl " <> sym
+  dir $ "globl " <> name
   dir "p2align 4, 0x90"
-  label sym
+  label name
   ins "pushq %rbp"
   ins "movq %rsp, %rbp"
   when (space > 0) $
@@ -184,6 +213,35 @@ formIf [cond, t] = do
   expr t
   label labFalse
 formIf es = throwError $ "if expects two or three arguments, received " <> show (length es)
+
+unpackVars :: Expr -> CodeGen [(Text, Expr)]
+unpackVars (List vars) = go vars
+  where
+    go :: [Expr] -> CodeGen [(Text, Expr)]
+    go (List [Sym s, e] : vs) = ((s, e):)   <$> go vs
+    go (Sym s           : vs) = ((s, Nil):) <$> go vs
+    go []                     = pure []
+    go (e : _)                = throwError $ "invalid let var form " <> show e
+unpackVars Nil                = pure []
+unpackVars _                  = throwError "invalid let vars form"
+
+formLet :: [Expr] -> CodeGen ()
+formLet [vs, body] = do
+  vars <- unpackVars vs
+
+  forM_ vars $ \(name, e) -> do
+    slot <- allocStackSlot
+    addVariable name slot
+    expr e
+    ins $ "movq %rax, " <> stackSlot slot <> "(%rbp)"
+
+  expr body
+
+  forM_ vars $ \(name, _) -> do
+    delVariable name
+    freeStackSlot
+
+formLet es = throwError $ "let expects two forms, received " <> show (length es)
 
 primPrint :: [Expr] -> CodeGen ()
 primPrint [e] = do

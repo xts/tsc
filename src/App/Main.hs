@@ -9,5 +9,5 @@ main :: IO ()
 main = do
   options <- parseOptions
   compile options >>= \case
-    Left err  -> putStrLn err >> exitFailure
+    Left err  -> putStrLn ("error: " <> err) >> exitFailure
     Right _   -> pure ()

@@ -77,3 +77,10 @@ spec = do
       running "(print (< 2 1))" `shouldReturn` "#f"
       running "(print (< -1 0))" `shouldReturn` "#t"
       running "(print (< -1 -2))" `shouldReturn` "#f"
+
+    -- Let.
+    it "compiles let" $ do
+      running "(print (let ((x 2)) (+ x x)))" `shouldReturn` "4"
+      running "(print (let ((x 2) (y 1)) (+ x y)))" `shouldReturn` "3"
+      running "(print (let (x) x))" `shouldReturn` "()"
+      running "(print (let () 0))" `shouldReturn` "0"
