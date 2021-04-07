@@ -84,3 +84,4 @@ spec = do
       running "(print (let ((x 2) (y 1)) (+ x y)))" `shouldReturn` "3"
       running "(print (let (x) x))" `shouldReturn` "()"
       running "(print (let () 0))" `shouldReturn` "0"
+      running "(print (let ((x 1)) (+ (let ((x 2)) x) x)))" `shouldReturn` "3"

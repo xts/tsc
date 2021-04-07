@@ -9,6 +9,7 @@ import Control.Monad.Except (Except, runExcept, throwError)
 import Data.ByteString (ByteString)
 import Data.ByteString.UTF8 (fromString)
 import Data.Char (isAscii, ord)
+import Data.List (find)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text, pack)
@@ -22,11 +23,11 @@ data Env = Env
   }
 
 data Allocations = Allocations
-  { stCurStack     :: Int            -- ^ Next free stack slot.
-  , stMaxStack     :: Int            -- ^ Peak stack usage.
-  , stStringLabels :: Map Text Text  -- ^ Constant string -> string label.
-  , stNextLabel    :: Int            -- ^ Suffix of next local code label.
-  , stVariables    :: Map Text Int   -- ^ Variable name -> stack index.
+  { stCurStack     :: Int           -- ^ Next free stack slot.
+  , stMaxStack     :: Int           -- ^ Peak stack usage.
+  , stStringLabels :: Map Text Text -- ^ Constant string -> string label.
+  , stNextLabel    :: Int           -- ^ Suffix of next local code label.
+  , stVariables    :: [(Text, Int)] -- ^ Variable name -> stack index.
   }
 
 type CodeGen a = RWST Env ByteString Allocations (Except String) a
@@ -35,7 +36,7 @@ runCodeGen :: Text -> CodeGen () -> Either String (Allocations, ByteString)
 runCodeGen ctx f = runExcept $ execRWST f env state
   where
     env   = Env Map.empty ctx
-    state = Allocations 0 0 Map.empty 0 Map.empty
+    state = Allocations 0 0 Map.empty 0 []
 
 emit :: ByteString -> CodeGen ()
 emit = tell
@@ -43,15 +44,16 @@ emit = tell
 addVariable :: Text -> Int -> CodeGen ()
 addVariable name slot = do
   vars <- stVariables <$> get
-  modify $ \st -> st { stVariables = Map.insert name slot vars }
+  modify $ \st -> st { stVariables = (name, slot) : vars }
 
 delVariable :: Text -> CodeGen ()
 delVariable name = do
   vars <- stVariables <$> get
-  modify $ \st -> st { stVariables = Map.delete name vars }
+  let (before, after) = break ((== name) . fst) vars
+  modify $ \st -> st { stVariables = before ++ tail after }
 
 lookupVariable :: Text -> CodeGen (Maybe Int)
-lookupVariable name = Map.lookup name . stVariables <$> get
+lookupVariable name = fmap snd . find ((== name) . fst) . stVariables <$> get
 
 allocStackSlot :: CodeGen Int
 allocStackSlot = do
