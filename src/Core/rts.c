@@ -31,7 +31,7 @@ int is_char(void *value) {
 }
 
 int is_string(void *value) {
-    return ((int)value & 0x3) == 0x3;
+    return ((int)value & 0x7) == 0x3;
 }
 
 int from_fixnum(void *value) {
@@ -43,7 +43,7 @@ char from_char(void *value) {
 }
 
 const char *from_string(void *value) {
-    return (const char *)((uintptr_t)(value) & ~3);
+    return (const char *)((uintptr_t)(value) & ~7);
 }
 
 void print(void* value) {
