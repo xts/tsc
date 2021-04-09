@@ -196,6 +196,20 @@ epilogue space = do
   ins "popq %rbp"
   ins "retq"
 
+cons :: Text -> Text -> CodeGen ()
+cons a d = do
+  ins $ "movq " <> encodeUtf8 a <> ", 0(%rsi)" -- set car
+  ins $ "movq " <> encodeUtf8 d <> ", 0(%rsi)" -- set cdr
+  ins "movq %rsi, %rax"                        -- set eax to rsi | 1
+  ins "orq %eax, 1"
+  ins "addq $16, %rsi"                         -- bump heap ptr
+
+car :: CodeGen ()
+car = ins "leaq -1(%rax), %rax" -- subtract one to compensate for cons bit
+
+cdr :: CodeGen ()
+cdr = ins "leaq -5(%rax), %rax)" -- subtract one to compensate for cons bit
+
 formIf :: [Expr] -> CodeGen ()
 formIf [cond, t, f] = do
   labFalse <- funLabel
