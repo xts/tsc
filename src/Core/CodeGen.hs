@@ -129,18 +129,19 @@ indent = "    "
 
 lower :: Expr -> Either String ByteString
 lower e = do
-  (alloc, code)   <- function "_scheme_entry" e
+  (alloc, code)   <- do
+    function "_scheme_entry" e True
   (_, stringData) <- runCodeGen mempty $ strings $ stStringLabels alloc
   pure $ code <> stringData
 
-function :: Text -> Expr -> Either String (Allocations, ByteString)
-function name e = do
+function :: Text -> Expr -> Bool -> Either String (Allocations, ByteString)
+function name e isMain = do
   (alloc, body) <- runCodeGen name $ expr e
   (_, func) <- runCodeGen name $ do
     prologue (stackSpace alloc)
-    ins "movq %rdi, %rsi"        -- Our argument is the heap ptr.
+    when isMain $ ins "movq %rdi, %rsi" -- Our argument is the heap ptr.
     emit body
-    ins "xorq %rax, %rax"        -- Return 0.
+    when isMain $ ins "xorq %rax, %rax" -- Return 0 to the OS.
     epilogue (stackSpace alloc)
   pure (alloc, func)
 
@@ -204,11 +205,15 @@ cons a d = do
   ins "orq %eax, 1"
   ins "addq $16, %rsi"                         -- bump heap ptr
 
+-- | Read the first element of a pair. This would normally be at offset 0, but
+-- since the pair object is tagged with 0xb001, our offset is at -1.
 car :: CodeGen ()
-car = ins "leaq -1(%rax), %rax" -- subtract one to compensate for cons bit
+car = ins "leaq -1(%rax), %rax"
 
+-- | Read the second element of a pair. This would normally be at offset 8, but
+-- since the pair object is tagged with 0xb001, our offset is at 7.
 cdr :: CodeGen ()
-cdr = ins "leaq -5(%rax), %rax)" -- subtract one to compensate for cons bit
+cdr = ins "leaq 7(%rax), %rax)"
 
 formIf :: [Expr] -> CodeGen ()
 formIf [cond, t, f] = do
