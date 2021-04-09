@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #define CHAR_MASK 0xf
 #define FIXNUM_MASK 0x3
@@ -63,4 +64,11 @@ void print(void* value) {
         printf("Invalid value: %p", value);
     }
     printf("\n");
+}
+
+void scheme_entry(void *);
+
+int main() {
+    void *heap = malloc(1024768);
+    scheme_entry(heap);
 }

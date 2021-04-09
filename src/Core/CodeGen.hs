@@ -129,7 +129,7 @@ indent = "    "
 
 lower :: Expr -> Either String ByteString
 lower e = do
-  (alloc, code)   <- function "_main" e
+  (alloc, code)   <- function "_scheme_entry" e
   (_, stringData) <- runCodeGen mempty $ strings $ stStringLabels alloc
   pure $ code <> stringData
 
@@ -138,8 +138,9 @@ function name e = do
   (alloc, body) <- runCodeGen name $ expr e
   (_, func) <- runCodeGen name $ do
     prologue (stackSpace alloc)
+    ins "movq %rdi, %rsi"        -- Our argument is the heap ptr.
     emit body
-    ins "xorq %rax, %rax"
+    ins "xorq %rax, %rax"        -- Return 0.
     epilogue (stackSpace alloc)
   pure (alloc, func)
 
@@ -244,8 +245,12 @@ formLet es = throwError $ "let expects two forms, received " <> show (length es)
 primPrint :: [Expr] -> CodeGen ()
 primPrint [e] = do
   expr e
-  ins "movq %rax, %rdi"
+  ins "movq %rax, %rdi" -- argument to print
+  ins "pushq %rsi"      -- save heap ptr
+  ins "subq $8, %rsp"   --   align stack to 16
   ins "callq _print"
+  ins "addq $8, %rsp"   -- restore heap ptr
+  ins "popq %rsi"
 primPrint es = throwError $ "print expects 1 parameter, received " <> show (length es)
 
 primAdd :: [Expr] -> CodeGen ()
