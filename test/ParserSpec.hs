@@ -10,7 +10,7 @@ import Core.AST
 import Core.Lexer qualified as L
 import Core.Parser qualified as P
 
-parse :: Text -> Either String [Expr]
+parse :: Text -> Either String [Expr Text]
 parse source = L.lex source >>= P.parse
 
 spec :: Spec

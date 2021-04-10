@@ -20,7 +20,7 @@ primitives = fromList
   , ("<", lessThan)
   ]
 
-print :: [Expr] -> CodeGen ()
+print :: [Expr Text] -> CodeGen ()
 print [e] = do
   expr e
   ins "movq %rax, %rdi" -- argument to print
@@ -31,7 +31,7 @@ print [e] = do
   ins "popq %rsi"
 print es = throwError $ "print expects 1 parameter, received " <> show (length es)
 
-add :: [Expr] -> CodeGen ()
+add :: [Expr Text] -> CodeGen ()
 add [a, b] = do
   expr a
   withStackSlot $ \slot -> do
@@ -40,7 +40,7 @@ add [a, b] = do
     ins $ "addq " <> slot <> "(%rbp), %rax"
 add es = throwError $ "+ expects 2 parameters, received " <> show (length es)
 
-sub :: [Expr] -> CodeGen ()
+sub :: [Expr Text] -> CodeGen ()
 sub [a, b] = do
   expr b
   withStackSlot $ \slot -> do
@@ -49,7 +49,7 @@ sub [a, b] = do
     ins $ "subq " <> slot <> "(%rbp), %rax"
 sub es = throwError $ "- expects 2 parameters, received " <> show (length es)
 
-lessThan :: [Expr] -> CodeGen ()
+lessThan :: [Expr Text] -> CodeGen ()
 lessThan [a, b] = do
   lab <- funLabel
   sub [a, b]

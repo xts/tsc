@@ -16,7 +16,7 @@ import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
 import Core.CodeGen.Primitives
 
-lower :: [Expr] -> Either String ByteString
+lower :: [Expr Text] -> Either String ByteString
 lower es = do
   (alloc, code)   <- do
     function "_scheme_entry" es True
@@ -32,7 +32,7 @@ strings labels = do
     label $ encodeUtf8 v
     dir $ "asciz \"" <> encodeUtf8 k <> "\""
 
-function :: Text -> [Expr] -> Bool -> Either String (State, ByteString)
+function :: Text -> [Expr Text] -> Bool -> Either String (State, ByteString)
 function name es isMain = do
   (alloc, body) <- runCodeGen name primitives $ mapM_ expr es
   (_, func) <- runCodeGen name primitives $ do

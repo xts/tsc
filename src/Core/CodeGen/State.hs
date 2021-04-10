@@ -31,7 +31,7 @@ import Data.Text.Encoding (encodeUtf8)
 
 import Core.AST
 
-type Primitive = [Expr] -> CodeGen ()
+type Primitive = [Expr Text] -> CodeGen ()
 
 data Env = Env
   { envContext    :: Text               -- ^ Current function.

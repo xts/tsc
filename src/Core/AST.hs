@@ -5,16 +5,16 @@ module Core.AST
 
 import Data.Text (Text)
 
-data Expr
+data Expr a
   = Nil
   | Sym Text
-  | Lit Literal
-  | List [Expr]
+  | Lit (Literal a)
+  | List [Expr a]
   deriving (Eq, Show)
 
-data Literal
+data Literal a
   = Fixnum Int
-  | String Text
+  | String a
   | Char Char
   | Bool Bool
   deriving (Eq, Show)
