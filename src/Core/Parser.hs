@@ -50,8 +50,8 @@ list = List <$> (T.openBrace *> some expr <* T.closeBrace)
 expr :: Parser Expr
 expr = try nil <|> literal <|> sym <|> list
 
-program :: Parser Expr
-program = expr <* eof
+program :: Parser [Expr]
+program = many expr <* eof
 
-parse :: [T.Token] -> Either String Expr
+parse :: [T.Token] -> Either String [Expr]
 parse = mapLeft show . runParser program "<input>"

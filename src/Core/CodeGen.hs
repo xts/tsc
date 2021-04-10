@@ -127,16 +127,16 @@ label name = emit $ name <> ":\n"
 indent :: ByteString
 indent = "    "
 
-lower :: Expr -> Either String ByteString
-lower e = do
+lower :: [Expr] -> Either String ByteString
+lower es = do
   (alloc, code)   <- do
-    function "_scheme_entry" e True
+    function "_scheme_entry" es True
   (_, stringData) <- runCodeGen mempty $ strings $ stStringLabels alloc
   pure $ code <> stringData
 
-function :: Text -> Expr -> Bool -> Either String (Allocations, ByteString)
-function name e isMain = do
-  (alloc, body) <- runCodeGen name $ expr e
+function :: Text -> [Expr] -> Bool -> Either String (Allocations, ByteString)
+function name es isMain = do
+  (alloc, body) <- runCodeGen name $ mapM_ expr es
   (_, func) <- runCodeGen name $ do
     prologue (stackSpace alloc)
     when isMain $ ins "movq %rdi, %rsi" -- Our argument is the heap ptr.

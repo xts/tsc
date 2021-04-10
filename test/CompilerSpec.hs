@@ -85,3 +85,6 @@ spec = do
       running "(print (let (x) x))" `shouldReturn` "()"
       running "(print (let () 0))" `shouldReturn` "0"
       running "(print (let ((x 1)) (+ (let ((x 2)) x) x)))" `shouldReturn` "3"
+
+    it "compiles multiple expressions" $ do
+      running "(print \"hello\") (print \"world\")" `shouldReturn` "hello\nworld"
