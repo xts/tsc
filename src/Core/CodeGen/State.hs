@@ -15,8 +15,6 @@ module Core.CodeGen.State
   , stackSlot
   , stackSpace
   , funLabel
-  , stringLabel
-  , stStringLabels
   ) where
 
 import Control.Monad.RWS (RWST, execRWST, ask, tell, get, modify)
@@ -26,10 +24,10 @@ import Data.ByteString.UTF8 (fromString)
 import Data.List (find)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 
-import Core.Parser.AST
+import Core.Analyser.AST
 
 type Primitive = [Expr] -> CodeGen ()
 
@@ -41,7 +39,6 @@ data Env = Env
 data State = State
   { stCurStack     :: Int           -- ^ Next free stack slot.
   , stMaxStack     :: Int           -- ^ Peak stack usage.
-  , stStringLabels :: Map Text Text -- ^ Constant string -> string label.
   , stNextLabel    :: Int           -- ^ Suffix of next local code label.
   , stVariables    :: [(Text, Int)] -- ^ Variable name -> stack index.
   }
@@ -52,7 +49,7 @@ runCodeGen :: Text -> Map Text Primitive -> CodeGen () -> Either String (State, 
 runCodeGen ctx ps f = runExcept $ execRWST f env state
   where
     env   = Env ctx ps
-    state = State 0 0 Map.empty 0 []
+    state = State 0 0 0 []
 
 emit :: ByteString -> CodeGen ()
 emit = tell
@@ -107,16 +104,6 @@ stackSpace :: State -> Int
 stackSpace = to16s . (8*) . stMaxStack
   where
     to16s n = let r = n `rem` 16 in if r == 0 then n else n + 16 - r
-
-stringLabel :: Text -> CodeGen Text
-stringLabel text = do
-  labels <- stStringLabels <$> get
-  case Map.lookup text labels of
-    Just lab -> pure lab
-    Nothing    -> do
-      let lab = "_string_" <> pack (show $ Map.size labels)
-      modify $ \st -> st { stStringLabels = Map.insert text lab labels }
-      pure lab
 
 funLabel :: CodeGen ByteString
 funLabel = do

@@ -13,8 +13,8 @@ data Expr
   deriving (Eq, Show)
 
 data Literal
-  = Fixnum Int
-  | String Text
+  = Bool Bool
   | Char Char
-  | Bool Bool
+  | Fixnum Int
+  | String Text
   deriving (Eq, Show)

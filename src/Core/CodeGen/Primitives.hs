@@ -7,7 +7,7 @@ import Data.Map (Map, fromList)
 import Data.Text (Text)
 import Prelude hiding (lookup, print)
 
-import Core.Parser.AST
+import Core.Analyser.AST
 import Core.CodeGen.State
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr

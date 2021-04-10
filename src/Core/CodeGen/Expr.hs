@@ -11,7 +11,7 @@ import Data.Char (isAscii, ord)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 
-import Core.Parser.AST
+import Core.Analyser.AST
 import Core.CodeGen.State
 import Core.CodeGen.Emitters
 
@@ -29,9 +29,8 @@ literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
 literal (Bool True)  = ins "movq $0x2f, %rax"
 literal (Bool False) = ins "movq $0x6f, %rax"
 literal c@(Char _)   = ins $ "movq $" <> encode c <> ", %rax"
-literal (String s)   = do
-  lab <- stringLabel s
-  ins $ "leaq " <> encodeUtf8 lab <> "(%rip), %rax"
+literal (String (Label l)) = do
+  ins $ "leaq " <> encodeUtf8 l <> "(%rip), %rax"
   ins "orq $3, %rax"
 
 encode :: Literal -> ByteString

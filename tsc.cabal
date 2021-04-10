@@ -23,6 +23,8 @@ library
   import:          shared
   hs-source-dirs:  src
   exposed-modules:
+    Core.Analyser,
+    Core.Analyser.AST,
     Core.CodeGen,
     Core.CodeGen.Emitters,
     Core.CodeGen.Expr,
@@ -41,6 +43,7 @@ library
     containers    ^>= 0.6,
     either        ^>= 5.0,
     file-embed    ^>= 0.0,
+    lens          ^>= 5.0,
     megaparsec    ^>= 9.0,
     mtl           ^>= 2.2,
     temporary     ^>= 1.3,
