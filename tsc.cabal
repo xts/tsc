@@ -25,6 +25,10 @@ library
   exposed-modules:
     Core.AST,
     Core.CodeGen,
+    Core.CodeGen.Emitters,
+    Core.CodeGen.Expr,
+    Core.CodeGen.Primitives,
+    Core.CodeGen.State,
     Core.Compiler,
     Core.Lexer,
     Core.Linker,
