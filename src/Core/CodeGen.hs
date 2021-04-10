@@ -11,7 +11,7 @@ import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 
 import Core.Analyser
-import Core.Analyser.AST qualified as A
+import Core.Analyser.AST
 import Core.Parser.AST qualified as P
 import Core.CodeGen.State
 import Core.CodeGen.Emitters
@@ -21,9 +21,12 @@ import Core.CodeGen.Primitives
 lower :: [P.Expr] -> Either String ByteString
 lower es = do
   let (es', Labels stringLabels) = analyse es
-  (_, stringData) <- runCodeGen mempty mempty $ strings stringLabels
-  (_, code)  <- function "_scheme_entry" es' True
+  code       <- snd <$> function "_scheme_entry" es' True
+  stringData <- snd <$> gen "strings" (strings stringLabels)
   pure $ code <> stringData
+
+gen :: Text -> CodeGen () -> Either String (State, ByteString)
+gen ctx = runCodeGen ctx primitives
 
 strings :: Map Text Label -> CodeGen ()
 strings labels = do
@@ -34,19 +37,15 @@ strings labels = do
     label $ encodeUtf8 v
     dir $ "asciz \"" <> encodeUtf8 k <> "\""
 
-function :: Text -> [A.Expr] -> Bool -> Either String (State, ByteString)
-function name es isMain = do
-  (alloc, body) <- runCodeGen name primitives $ mapM_ expr es
-  (_, func) <- runCodeGen name primitives $ do
-    prologue (stackSpace alloc)
-    when isMain $ ins "movq %rdi, %rsi" -- Our argument is the heap ptr.
-    emit body
-    when isMain $ ins "xorq %rax, %rax" -- Return 0 to the OS.
-    epilogue (stackSpace alloc)
-  pure (alloc, func)
+function :: Text -> [Expr] -> Bool -> Either String (State, ByteString)
+function ctx es isMain = do
+  (st, body) <- gen ctx $ mapM_ expr es
+  (_, pre)   <- gen ctx $ prologue (stackSpace st) isMain
+  (_, post)  <- gen ctx $ epilogue (stackSpace st) isMain
+  pure (st, pre <> body <> post)
 
-prologue :: Int -> CodeGen ()
-prologue space = do
+prologue :: Int -> Bool -> CodeGen ()
+prologue space isMain = do
   name <- encodeUtf8 <$> context
   dir "text"
   dir $ "globl " <> name
@@ -56,9 +55,11 @@ prologue space = do
   ins "movq %rsp, %rbp"
   when (space > 0) $
     ins $ "subq $" <> fromString (show space) <> ", %rsp"
+  when isMain $ ins "movq %rdi, %rsi" -- Our argument is the heap ptr.
 
-epilogue :: Int -> CodeGen ()
-epilogue space = do
+epilogue :: Int -> Bool -> CodeGen ()
+epilogue space isMain = do
+  when isMain $ ins "xorq %rax, %rax" -- Return 0 to the OS.
   when (space > 0) $
     ins $ "addq $" <> fromString (show space) <> ", %rsp"
   ins "popq %rbp"
