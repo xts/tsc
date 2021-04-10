@@ -86,5 +86,10 @@ spec = do
       running "(print (let () 0))" `shouldReturn` "0"
       running "(print (let ((x 1)) (+ (let ((x 2)) x) x)))" `shouldReturn` "3"
 
+    -- Expression sequences.
     it "compiles multiple expressions" $ do
       running "(print \"hello\") (print \"world\")" `shouldReturn` "hello\nworld"
+
+    -- Rudimentary lambdas.
+    it "compiles rudimentary lambdas" $ do
+      running "((lambda () ((lambda () (print \"lam\")))))" `shouldReturn` "lam"

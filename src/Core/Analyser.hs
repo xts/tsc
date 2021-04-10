@@ -1,6 +1,7 @@
 module Core.Analyser
-  ( Labels(..)
+  ( Info(..)
   , Label(..)
+  , Lambda(..)
   , analyse
   ) where
 
@@ -12,18 +13,28 @@ import Data.Text (Text, pack)
 import Core.Analyser.AST
 import Core.Parser.AST qualified as P
 
-newtype Labels = Labels
-  { lbStrings :: Map Text Label
+data Lambda = Lambda
+  { lmParams :: [Text]
+  , lmBody   :: [Expr]
+  } deriving (Eq, Show)
+
+data Info = Info
+  { inStrings :: Map Text Label
+  , inLambdas :: [(Lambda, Label)]
   } deriving (Show)
 
-type Analyser a = State Labels a
+type Analyser a = State Info a
 
-analyse :: [P.Expr] -> ([Expr], Labels)
-analyse es = runState (mapM expr es) $ Labels Map.empty
+analyse :: [P.Expr] -> ([Expr], Info)
+analyse es = runState (mapM expr es) $ Info Map.empty []
 
 expr :: P.Expr -> Analyser Expr
 expr P.Nil       = pure Nil
 expr (P.Sym s)   = pure $ Sym s
+expr (P.List (P.Sym "lambda" : ps : es)) = do
+  params <- expr ps
+  body   <- mapM expr es
+  Lam <$> lambdaLabel params body
 expr (P.List xs) = List <$> mapM expr xs
 expr (P.Lit lit) = literal lit
 
@@ -33,12 +44,23 @@ literal (P.Char c)   = pure $ Lit $ Char c
 literal (P.Fixnum k) = pure $ Lit $ Fixnum k
 literal (P.String s) = Lit . String <$> stringLabel s
 
+lambdaLabel :: Expr -> [Expr] -> Analyser Label
+lambdaLabel params body = do
+  let lambda = Lambda (map sym $ toList params) body
+  lambdas <- inLambdas <$> get
+  let lb = label "_lambda_" (length lambdas)
+  modify $ \st -> st { inLambdas = (lambda, lb):lambdas }
+  pure lb
+
 stringLabel :: Text -> Analyser Label
 stringLabel text = do
-  strings <- lbStrings <$> get
+  strings <- inStrings <$> get
   case Map.lookup text strings of
     Just lb -> pure lb
     Nothing -> do
-      let lb = Label $ "_string_" <> pack (show $ Map.size strings)
-      modify $ \st -> st { lbStrings = Map.insert text lb strings }
+      let lb = label "_string_" (Map.size strings)
+      modify $ \st -> st { inStrings = Map.insert text lb strings }
       pure lb
+
+label :: Text -> Int -> Label
+label prefix n = Label $ prefix <> pack (show n)

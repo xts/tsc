@@ -2,7 +2,7 @@ module Core.CodeGen
   ( lower
   ) where
 
-import Control.Monad (forM_, when)
+import Control.Monad (forM, forM_, when)
 import Data.ByteString (ByteString)
 import Data.ByteString.UTF8 (fromString)
 import Data.Map (Map)
@@ -20,13 +20,18 @@ import Core.CodeGen.Primitives
 
 lower :: [P.Expr] -> Either String ByteString
 lower es = do
-  let (es', Labels stringLabels) = analyse es
-  code       <- snd <$> function "_scheme_entry" es' True
-  stringData <- snd <$> gen "strings" (strings stringLabels)
-  pure $ code <> stringData
+  let (es', info) = analyse es
+  main       <- snd <$> function "_scheme_entry" es' True
+  lams       <- lambdas $ inLambdas info
+  stringData <- snd <$> gen "strings" (strings $ inStrings info)
+  pure $ main <> lams <> stringData
 
 gen :: Text -> CodeGen () -> Either String (State, ByteString)
 gen ctx = runCodeGen ctx primitives
+
+lambdas :: [(Lambda, Label)] -> Either String ByteString
+lambdas lams = foldr (<>) mempty . map snd <$> fs
+  where fs = forM lams $ \(Lambda _ e, lb) -> function (unLabel lb) e False
 
 strings :: Map Text Label -> CodeGen ()
 strings labels = do

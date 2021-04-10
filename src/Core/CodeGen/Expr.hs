@@ -29,8 +29,8 @@ literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
 literal (Bool True)  = ins "movq $0x2f, %rax"
 literal (Bool False) = ins "movq $0x6f, %rax"
 literal c@(Char _)   = ins $ "movq $" <> encode c <> ", %rax"
-literal (String (Label l)) = do
-  ins $ "leaq " <> encodeUtf8 l <> "(%rip), %rax"
+literal (String l) = do
+  ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
   ins "orq $3, %rax"
 
 encode :: Literal -> ByteString
@@ -39,9 +39,10 @@ encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
 form :: Expr -> [Expr] -> CodeGen ()
-form (Sym "if")    es = formIf es
-form (Sym "let")   es = formLet es
-form (Sym s)       es = lookupPrimitive s >>= \case
+form (Sym "if")  es = formIf es
+form (Sym "let") es = formLet es
+form (Lam l)    _es = ins $ "callq " <> encodeUtf8 (unLabel l)
+form (Sym s)     es = lookupPrimitive s >>= \case
   Just prim -> prim es
   Nothing   -> throwError $ "no such binding " <> show (show s)
 form e _  = throwError $ "don't know how to evaluate form " <> show e
