@@ -1,20 +1,20 @@
-module Core.AST
+module Core.Parser.AST
     ( Expr(..)
     , Literal(..)
     ) where
 
 import Data.Text (Text)
 
-data Expr a
+data Expr
   = Nil
   | Sym Text
-  | Lit (Literal a)
-  | List [Expr a]
+  | Lit Literal
+  | List [Expr]
   deriving (Eq, Show)
 
-data Literal a
+data Literal
   = Fixnum Int
-  | String a
+  | String Text
   | Char Char
   | Bool Bool
   deriving (Eq, Show)

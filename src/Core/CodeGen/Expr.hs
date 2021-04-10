@@ -11,11 +11,11 @@ import Data.Char (isAscii, ord)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 
-import Core.AST
+import Core.Parser.AST
 import Core.CodeGen.State
 import Core.CodeGen.Emitters
 
-expr :: Expr Text -> CodeGen ()
+expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
@@ -24,7 +24,7 @@ expr (Sym s)       = lookupVariable s >>= \case
   Nothing   -> throwError $ "no such binding " <> show s
 expr e             = throwError $ "Unable to lower " <> show e
 
-literal :: Literal Text -> CodeGen ()
+literal :: Literal -> CodeGen ()
 literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
 literal (Bool True)  = ins "movq $0x2f, %rax"
 literal (Bool False) = ins "movq $0x6f, %rax"
@@ -34,12 +34,12 @@ literal (String s)   = do
   ins $ "leaq " <> encodeUtf8 lab <> "(%rip), %rax"
   ins "orq $3, %rax"
 
-encode :: Literal Text -> ByteString
+encode :: Literal -> ByteString
 encode (Fixnum n)           = fromString $ show $ n * 4
 encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
-form :: Expr Text -> [Expr Text] -> CodeGen ()
+form :: Expr -> [Expr] -> CodeGen ()
 form (Sym "if")    es = formIf es
 form (Sym "let")   es = formLet es
 form (Sym s)       es = lookupPrimitive s >>= \case
@@ -65,7 +65,7 @@ _car = ins "leaq -1(%rax), %rax"
 _cdr :: CodeGen ()
 _cdr = ins "leaq 7(%rax), %rax)"
 
-formIf :: [Expr Text] -> CodeGen ()
+formIf :: [Expr] -> CodeGen ()
 formIf [cond, t, f] = do
   labFalse <- funLabel
   labEnd   <- funLabel
@@ -86,10 +86,10 @@ formIf [cond, t] = do
   label labFalse
 formIf es = throwError $ "if expects two or three arguments, received " <> show (length es)
 
-unpackVars :: Expr Text -> CodeGen [(Text, Expr Text)]
+unpackVars :: Expr -> CodeGen [(Text, Expr)]
 unpackVars (List vars) = go vars
   where
-    go :: [Expr Text] -> CodeGen [(Text, Expr Text)]
+    go :: [Expr] -> CodeGen [(Text, Expr)]
     go (List [Sym s, e] : vs) = ((s, e):)   <$> go vs
     go (Sym s           : vs) = ((s, Nil):) <$> go vs
     go []                     = pure []
@@ -97,7 +97,7 @@ unpackVars (List vars) = go vars
 unpackVars Nil                = pure []
 unpackVars _                  = throwError "invalid let vars form"
 
-formLet :: [Expr Text] -> CodeGen ()
+formLet :: [Expr] -> CodeGen ()
 formLet [vs, body] = do
   vars <- unpackVars vs
   forM_ vars $ \(name, e) -> do

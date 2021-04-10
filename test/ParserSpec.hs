@@ -6,11 +6,11 @@ import Data.Either (isLeft)
 import Data.Text (Text)
 import Test.Hspec
 
-import Core.AST
+import Core.Parser.AST
 import Core.Lexer qualified as L
 import Core.Parser qualified as P
 
-parse :: Text -> Either String [Expr Text]
+parse :: Text -> Either String [Expr]
 parse source = L.lex source >>= P.parse
 
 spec :: Spec

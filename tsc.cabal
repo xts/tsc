@@ -23,7 +23,6 @@ library
   import:          shared
   hs-source-dirs:  src
   exposed-modules:
-    Core.AST,
     Core.CodeGen,
     Core.CodeGen.Emitters,
     Core.CodeGen.Expr,
@@ -34,6 +33,7 @@ library
     Core.Linker,
     Core.Options,
     Core.Parser,
+    Core.Parser.AST,
     Core.Token
   build-depends:
     base          ^>= 4.14,

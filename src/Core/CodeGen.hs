@@ -10,16 +10,15 @@ import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 
-import Core.AST
+import Core.Parser.AST
 import Core.CodeGen.State
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
 import Core.CodeGen.Primitives
 
-lower :: [Expr Text] -> Either String ByteString
+lower :: [Expr] -> Either String ByteString
 lower es = do
-  (alloc, code)   <- do
-    function "_scheme_entry" es True
+  (alloc, code)   <- do function "_scheme_entry" es True
   (_, stringData) <- runCodeGen mempty primitives $ strings $ stStringLabels alloc
   pure $ code <> stringData
 
@@ -32,7 +31,7 @@ strings labels = do
     label $ encodeUtf8 v
     dir $ "asciz \"" <> encodeUtf8 k <> "\""
 
-function :: Text -> [Expr Text] -> Bool -> Either String (State, ByteString)
+function :: Text -> [Expr] -> Bool -> Either String (State, ByteString)
 function name es isMain = do
   (alloc, body) <- runCodeGen name primitives $ mapM_ expr es
   (_, func) <- runCodeGen name primitives $ do

@@ -29,9 +29,9 @@ import Data.Map qualified as Map
 import Data.Text (Text, pack)
 import Data.Text.Encoding (encodeUtf8)
 
-import Core.AST
+import Core.Parser.AST
 
-type Primitive = [Expr Text] -> CodeGen ()
+type Primitive = [Expr] -> CodeGen ()
 
 data Env = Env
   { envContext    :: Text               -- ^ Current function.
