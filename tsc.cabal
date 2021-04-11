@@ -64,6 +64,9 @@ executable tsc
     optparse-applicative ^>= 0.16,
     text                 ^>= 1.2,
     tsc
+  ghc-options:
+    -Wall
+    -threaded
 
 test-suite spec
   import:             shared
@@ -82,4 +85,7 @@ test-suite spec
   other-modules:
     CompilerSpec
     ParserSpec
+  ghc-options:
+    -Wall
+    -threaded
   build-tool-depends: hspec-discover:hspec-discover == 2.*
