@@ -12,11 +12,12 @@ data Source
   deriving (Show)
 
 data Options = Options
-  { optSource  :: Source
-  , optOut     :: String
-  , optEmitAst :: Bool
-  , optEmitAsm :: Bool
+  { optSource   :: Source
+  , optOut      :: String
+  , optEmitAst  :: Bool
+  , optEmitAst2 :: Bool
+  , optEmitAsm  :: Bool
   } deriving (Show)
 
 defOptions :: Options
-defOptions = Options (Source "") "a.out" False False
+defOptions = Options (Source "") "a.out" False False False

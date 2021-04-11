@@ -12,16 +12,14 @@ import Data.Text.Encoding (encodeUtf8)
 
 import Core.Analyser
 import Core.Analyser.AST
-import Core.Parser.AST qualified as P
 import Core.CodeGen.State
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
 import Core.CodeGen.Primitives
 
-lower :: [P.Expr] -> Either String ByteString
-lower es = do
-  let (es', info) = analyse es
-  main       <- snd <$> function "_scheme_entry" 0 es' True
+lower :: ([Expr], Info) -> Either String ByteString
+lower (es, info) = do
+  main       <- snd <$> function "_scheme_entry" 0 es True
   lams       <- lambdas $ inLambdas info
   stringData <- snd <$> gen "strings" 0 (strings $ inStrings info)
   pure $ main <> lams <> stringData

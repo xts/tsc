@@ -3,11 +3,12 @@ module Core.Compiler
   ) where
 
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Except (except, runExceptT, throwE)
+import Control.Monad.Trans.Except (ExceptT, except, runExceptT, throwE)
 import Data.Text.IO (readFile)
 import Data.ByteString.UTF8 (toString)
 import Prelude hiding (lex, readFile)
 
+import Core.Analyser
 import Core.CodeGen
 import Core.Lexer
 import Core.Parser
@@ -24,17 +25,18 @@ compile options = runExceptT pipeline
 
       tokens <- except $ lex source
       ast    <- except $ parse tokens
-      maybeEmitAst ast
+      maybeEmit optEmitAst ast
 
-      asm <- except $ lower ast
-      maybeEmitAsm asm
+      let ast2 = analyse ast
+      maybeEmit optEmitAst2 ast2
+
+      asm <- except $ lower ast2
+      maybeEmit optEmitAsm asm
+
 
       link asm (optOut options)
 
-    maybeEmitAst ast
-      | optEmitAst options = throwE $ show ast
-      | otherwise          = pure ()
-
-    maybeEmitAsm asm
-      | optEmitAsm options = throwE $ toString asm
-      | otherwise          = pure ()
+    maybeEmit :: Show a => (Options -> Bool) -> a -> ExceptT String IO ()
+    maybeEmit f x
+      | f options = throwE $ show x
+      | otherwise = pure ()
