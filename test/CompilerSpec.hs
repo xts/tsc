@@ -23,7 +23,7 @@ running source = withSystemTempFile "a.out" $ \path _ ->
         ExitFailure _ -> pure "Failed to run program"
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "compile" $ do
     -- Nil.
     it "compiles ()" $ do
@@ -85,6 +85,7 @@ spec = do
       running "(print (let (x) x))" `shouldReturn` "()"
       running "(print (let () 0))" `shouldReturn` "0"
       running "(print (let ((x 1)) (+ (let ((x 2)) x) x)))" `shouldReturn` "3"
+      running "(let ((say (lambda (x) (print x)))) (say \"hi\") (say \"you\"))" `shouldReturn` "hi\nyou"
 
     -- Expression sequences.
     it "compiles multiple expressions" $ do

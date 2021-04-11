@@ -124,15 +124,15 @@ unpackVars Nil                = pure []
 unpackVars _                  = throwError "invalid let vars form"
 
 formLet :: [Expr] -> CodeGen ()
-formLet [vs, body] = do
+formLet (vs:b:bs) = do
   vars <- unpackVars vs
   forM_ vars $ \(name, e) -> do
     slot <- allocStackSlot
     addVariable name slot
     expr e
     ins $ "movq %rax, " <> stackSlot slot <> "(%rbp)"
-  expr body
+  mapM_ expr (b:bs)
   forM_ vars $ \(name, _) -> do
     delVariable name
     freeStackSlot
-formLet es = throwError $ "let expects two forms, received " <> show (length es)
+formLet _ = throwError $ "let expects at least two forms"
