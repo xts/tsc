@@ -17,13 +17,19 @@ import Core.CodeGen.Emitters
 
 expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"
+expr (Sym s)       = var s
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
 expr (Arg i)       = ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
-expr (Sym s)       = lookupVariable s >>= \case
-  Just slot -> ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
-  Nothing   -> throwError $ "no such binding " <> show s
+expr (Lam l)       = do
+  ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
+  ins "orq $6, %rax" -- Tag as closure.
 expr e             = throwError $ "Unable to lower " <> show e
+
+var :: Text -> CodeGen ()
+var v = lookupVariable v >>= \case
+  Just slot -> ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
+  Nothing   -> throwError $ "no such binding " <> show v
 
 literal :: Literal -> CodeGen ()
 literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
@@ -43,18 +49,28 @@ form :: Expr -> [Expr] -> CodeGen ()
 form (Sym "if")  es = formIf es
 form (Sym "let") es = formLet es
 form (Lam l)     es = lambda l es
-form (Sym s)     es = lookupPrimitive s >>= \case
-  Just prim -> prim es
-  Nothing   -> throwError $ "no such binding " <> show (show s)
+form (Sym s)     es = fvar s es
 form e _  = throwError $ "don't know how to evaluate form " <> show e
+
+fvar :: Text -> [Expr] -> CodeGen ()
+fvar s es = lookupPrimitive s >>= \case
+  Just prim -> prim es
+  Nothing   -> do
+    pushArgs es
+    var s
+    ins "subq $6, %rax"
+    ins "callq *%rax"
+
+-- The callee expects its arguments starting in stack slot 3. This is
+-- because slot 1 is the return address and slot 2 is the rbp save.
+pushArgs :: [Expr] -> CodeGen ()
+pushArgs es = forM_ (zip es [3..]) $ \(e, i) -> do
+    expr e
+    ins $ "movq %rax, " <> stackSlot i <> "(%rsp)"
 
 lambda :: Label -> [Expr] -> CodeGen ()
 lambda (Label l) es = do
-  -- The callee expects its arguments starting in stack slot 3. This is
-  -- because slot 1 is the return address and slot 2 is the rbp save.
-  forM_ (zip es [3..]) $ \(e, i) -> do
-    expr e
-    ins $ "movq %rax, " <> stackSlot i <> "(%rsp)"
+  pushArgs es
   ins $ "callq " <> encodeUtf8 l
 
 _cons :: Text -> Text -> CodeGen ()

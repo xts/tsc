@@ -97,3 +97,4 @@ spec = do
     -- Lambdas with parameters.
     it "compiles non-closure lambdas" $ do
       running "(print ((lambda (x y) (+ x y)) 42 9))" `shouldReturn` "51"
+      running "(let ((say (lambda (x) (print x)))) (say \"hi\"))" `shouldReturn` "hi"
