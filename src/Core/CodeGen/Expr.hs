@@ -48,8 +48,15 @@ encode l                    = error $ "Unable to encode literal " <> show l
 form :: Expr -> [Expr] -> CodeGen ()
 form (Sym "if")  es = formIf es
 form (Sym "let") es = formLet es
-form (Lam l)     es = lambda l es
 form (Sym s)     es = fvar s es
+form (Lam l)     es = do
+  pushArgs es
+  ins $ "callq " <> encodeUtf8 (unLabel l)
+form (Arg i)     es = do
+  pushArgs es
+  ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
+  ins "subq $6, %rax"
+  ins "callq *%rax"
 form e _  = throwError $ "don't know how to evaluate form " <> show e
 
 fvar :: Text -> [Expr] -> CodeGen ()
@@ -67,11 +74,6 @@ pushArgs :: [Expr] -> CodeGen ()
 pushArgs es = forM_ (zip es [3..]) $ \(e, i) -> do
     expr e
     ins $ "movq %rax, " <> stackSlot i <> "(%rsp)"
-
-lambda :: Label -> [Expr] -> CodeGen ()
-lambda (Label l) es = do
-  pushArgs es
-  ins $ "callq " <> encodeUtf8 l
 
 _cons :: Text -> Text -> CodeGen ()
 _cons a d = do

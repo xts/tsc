@@ -25,18 +25,17 @@ compile options = runExceptT pipeline
 
       tokens <- except $ lex source
       ast    <- except $ parse tokens
-      maybeEmit optEmitAst ast
+      maybeEmit optEmitAst $ show ast
 
       let ast2 = analyse ast
-      maybeEmit optEmitAst2 ast2
+      maybeEmit optEmitAst2 $ show ast2
 
       asm <- except $ lower ast2
-      maybeEmit optEmitAsm asm
-
+      maybeEmit optEmitAsm $ toString asm
 
       link asm (optOut options)
 
-    maybeEmit :: Show a => (Options -> Bool) -> a -> ExceptT String IO ()
+    maybeEmit :: (Options -> Bool) -> String -> ExceptT String IO ()
     maybeEmit f x
-      | f options = throwE $ show x
+      | f options = throwE x
       | otherwise = pure ()

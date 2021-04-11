@@ -99,3 +99,8 @@ spec = parallel $ do
     it "compiles non-closure lambdas" $ do
       running "(print ((lambda (x y) (+ x y)) 42 9))" `shouldReturn` "51"
       running "(let ((say (lambda (x) (print x)))) (say \"hi\"))" `shouldReturn` "hi"
+
+    -- Fibonacci.
+    it "compiles fibonacci" $ do
+      running "(let ((fib (lambda (fib k) (if (< k 2) 1 (+ (fib fib (- k 1)) (fib fib (- k 2))))))) (print (fib fib 30)))"
+        `shouldReturn` "832040"
