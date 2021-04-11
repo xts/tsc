@@ -5,7 +5,7 @@ module Core.Analyser
   , analyse
   ) where
 
-import Control.Monad.State (State, runState, get, modify)
+import Control.Monad.State (State, runState,gets, modify)
 import Data.List (find)
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -46,27 +46,25 @@ literal (P.Fixnum k) = pure $ Lit $ Fixnum k
 literal (P.String s) = Lit . String <$> stringLabel s
 
 indexArgs :: [Text] -> [Expr] -> [Expr]
-indexArgs vs es = map (mapExpr go) es
+indexArgs vs = map (mapExpr go)
   where
-    go e@(Sym s) = case index' s of
-      Just i  -> Arg i
-      Nothing -> e
+    go e@(Sym s) = maybe e Arg (index' s)
     go e = e
-    index' s = fmap snd $ find ((== s) . fst) (zip vs [1..])
+    index' s = snd <$> find ((== s) . fst) (zip vs [1..])
 
 lambdaLabel :: Expr -> [Expr] -> Analyser Label
 lambdaLabel params body = do
   let ps     = map sym $ toList params
       bd     = indexArgs ps body
       lambda = Lambda ps bd
-  lambdas <- inLambdas <$> get
+  lambdas <- gets inLambdas
   let lb = label "_lambda_" (length lambdas)
   modify $ \st -> st { inLambdas = (lambda, lb):lambdas }
   pure lb
 
 stringLabel :: Text -> Analyser Label
 stringLabel text = do
-  strings <- inStrings <$> get
+  strings <- gets inStrings
   case Map.lookup text strings of
     Just lb -> pure lb
     Nothing -> do
