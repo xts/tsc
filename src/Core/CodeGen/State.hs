@@ -76,8 +76,8 @@ lookupVariable name = fmap snd . find ((== name) . fst) . stVariables <$> get
 
 allocStackSlot :: CodeGen Int
 allocStackSlot = do
-  sp <- stCurStack <$> get
-  setStack (succ sp)
+  sp <- succ . stCurStack <$> get
+  setStack sp
   pure sp
 
 freeStackSlot :: CodeGen ()
@@ -98,7 +98,7 @@ setStack sp = do
   modify $ \st -> st { stCurStack = sp, stMaxStack = max maxSp sp }
 
 stackSlot :: Int -> ByteString
-stackSlot = fromString . show . ((-8) *) . succ
+stackSlot = fromString . show . ((-8) *)
 
 stackSpace :: State -> Int
 stackSpace = to16s . (8*) . stMaxStack

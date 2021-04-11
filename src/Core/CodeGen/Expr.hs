@@ -42,11 +42,20 @@ encode l                    = error $ "Unable to encode literal " <> show l
 form :: Expr -> [Expr] -> CodeGen ()
 form (Sym "if")  es = formIf es
 form (Sym "let") es = formLet es
-form (Lam l)    _es = ins $ "callq " <> encodeUtf8 (unLabel l)
+form (Lam l)     es = lambda l es
 form (Sym s)     es = lookupPrimitive s >>= \case
   Just prim -> prim es
   Nothing   -> throwError $ "no such binding " <> show (show s)
 form e _  = throwError $ "don't know how to evaluate form " <> show e
+
+lambda :: Label -> [Expr] -> CodeGen ()
+lambda (Label l) es = do
+  -- The callee expects its arguments starting in stack slot 3. This is
+  -- because slot 1 is the return address and slot 2 is the rbp save.
+  forM_ (zip es [3..]) $ \(e, i) -> do
+    expr e
+    ins $ "movq %rax, " <> stackSlot i <> "(%rsp)"
+  ins $ "callq " <> encodeUtf8 l
 
 _cons :: Text -> Text -> CodeGen ()
 _cons a d = do

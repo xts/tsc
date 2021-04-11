@@ -93,3 +93,7 @@ spec = do
     -- Rudimentary lambdas.
     it "compiles rudimentary lambdas" $ do
       running "((lambda () ((lambda () (print \"lam\")))))" `shouldReturn` "lam"
+
+    -- Lambdas with parameters.
+    it "compiles non-closure lambdas" $ do
+      running "(print ((lambda (x y) (+ x y)) 42 9))" `shouldReturn` "51"

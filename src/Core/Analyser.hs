@@ -52,7 +52,7 @@ indexArgs vs es = map (mapExpr go) es
       Just i  -> Arg i
       Nothing -> e
     go e = e
-    index' s = fmap snd $ find ((== s) . fst) (zip vs [0..])
+    index' s = fmap snd $ find ((== s) . fst) (zip vs [1..])
 
 lambdaLabel :: Expr -> [Expr] -> Analyser Label
 lambdaLabel params body = do
