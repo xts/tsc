@@ -114,20 +114,9 @@ formIf [cond, t] = do
   label labFalse
 formIf es = throwError $ "if expects two or three arguments, received " <> show (length es)
 
-unpackVars :: Expr -> CodeGen [(Text, Expr)]
-unpackVars (List vars) = go vars
-  where
-    go :: [Expr] -> CodeGen [(Text, Expr)]
-    go (List [Sym s, e] : vs) = ((s, e):)   <$> go vs
-    go (Sym s           : vs) = ((s, Nil):) <$> go vs
-    go []                     = pure []
-    go (e : _)                = throwError $ "invalid let var form " <> show e
-unpackVars Nil                = pure []
-unpackVars _                  = throwError "invalid let vars form"
-
 formLet :: [Expr] -> CodeGen ()
-formLet (vs:b:bs) = do
-  vars <- unpackVars vs
+formLet (List vs:b:bs) = do
+  let vars = letVars vs
   forM_ vars $ \(name, e) -> do
     slot <- allocStackSlot
     addVariable name slot
@@ -137,4 +126,4 @@ formLet (vs:b:bs) = do
   forM_ vars $ \(name, _) -> do
     delVariable name
     freeStackSlot
-formLet _ = throwError $ "let expects at least two forms"
+formLet e = throwError $ "malformed let form: " <> show e

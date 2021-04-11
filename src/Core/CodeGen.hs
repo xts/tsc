@@ -28,8 +28,8 @@ gen :: Text -> Int -> CodeGen () -> Either String (State, ByteString)
 gen ctx nargs = runCodeGen ctx nargs primitives
 
 lambdas :: [(Lambda, Label)] -> Either String ByteString
-lambdas lams = foldr (<>) mempty . map snd <$> fs
-  where fs = forM lams $ \(Lambda as e, lb) ->
+lambdas lams = mconcat . map snd <$> fs
+  where fs = forM lams $ \(Lambda as _ e, lb) ->
           function (unLabel lb) (length as) e False
 
 strings :: Map Text Label -> CodeGen ()

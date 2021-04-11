@@ -2,9 +2,10 @@ module Core.Analyser.AST
   ( Expr(..)
   , Literal(..)
   , Label(..)
+  , toList
   , sym
   , mapExpr
-  , toList
+  , letVars
   ) where
 
 import Data.Text (Text)
@@ -40,3 +41,9 @@ sym e       = error $ "Not a symbol: " <> show e
 mapExpr :: (Expr -> Expr) -> Expr -> Expr
 mapExpr f (List es) = List $ map (mapExpr f) es
 mapExpr f e         = f e
+
+letVars :: [Expr] -> [(Text, Expr)]
+letVars (List [Sym s, e] : vs) = (s, e)   : letVars vs
+letVars (Sym s           : vs) = (s, Nil) : letVars vs
+letVars []                     = []
+letVars e                      = error $ "Malformed let var entry: " <> show e
