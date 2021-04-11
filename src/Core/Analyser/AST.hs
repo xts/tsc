@@ -3,6 +3,7 @@ module Core.Analyser.AST
   , Literal(..)
   , Label(..)
   , sym
+  , mapExpr
   , toList
   ) where
 
@@ -15,6 +16,7 @@ data Expr
   = Nil
   | Sym Text
   | Lam Label
+  | Arg Int
   | Lit Literal
   | List [Expr]
   deriving (Eq, Show)
@@ -34,3 +36,7 @@ toList e         = error $ "Not list-like: " <> show e
 sym :: Expr -> Text
 sym (Sym s) = s
 sym e       = error $ "Not a symbol: " <> show e
+
+mapExpr :: (Expr -> Expr) -> Expr -> Expr
+mapExpr f (List es) = List $ map (mapExpr f) es
+mapExpr f e         = f e

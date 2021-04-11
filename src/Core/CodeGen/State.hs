@@ -45,11 +45,11 @@ data State = State
 
 type CodeGen a = RWST Env ByteString State (Except String) a
 
-runCodeGen :: Text -> Map Text Primitive -> CodeGen () -> Either String (State, ByteString)
-runCodeGen ctx ps f = runExcept $ execRWST f env state
+runCodeGen :: Text -> Int -> Map Text Primitive -> CodeGen () -> Either String (State, ByteString)
+runCodeGen ctx preallocStack ps f = runExcept $ execRWST f env state
   where
     env   = Env ctx ps
-    state = State 0 0 0 []
+    state = State preallocStack preallocStack 0 []
 
 emit :: ByteString -> CodeGen ()
 emit = tell

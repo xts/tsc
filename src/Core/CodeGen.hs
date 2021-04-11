@@ -21,17 +21,18 @@ import Core.CodeGen.Primitives
 lower :: [P.Expr] -> Either String ByteString
 lower es = do
   let (es', info) = analyse es
-  main       <- snd <$> function "_scheme_entry" es' True
+  main       <- snd <$> function "_scheme_entry" 0 es' True
   lams       <- lambdas $ inLambdas info
-  stringData <- snd <$> gen "strings" (strings $ inStrings info)
+  stringData <- snd <$> gen "strings" 0 (strings $ inStrings info)
   pure $ main <> lams <> stringData
 
-gen :: Text -> CodeGen () -> Either String (State, ByteString)
-gen ctx = runCodeGen ctx primitives
+gen :: Text -> Int -> CodeGen () -> Either String (State, ByteString)
+gen ctx nargs = runCodeGen ctx nargs primitives
 
 lambdas :: [(Lambda, Label)] -> Either String ByteString
 lambdas lams = foldr (<>) mempty . map snd <$> fs
-  where fs = forM lams $ \(Lambda _ e, lb) -> function (unLabel lb) e False
+  where fs = forM lams $ \(Lambda as e, lb) ->
+          function (unLabel lb) (length as) e False
 
 strings :: Map Text Label -> CodeGen ()
 strings labels = do
@@ -42,11 +43,11 @@ strings labels = do
     label $ encodeUtf8 v
     dir $ "asciz \"" <> encodeUtf8 k <> "\""
 
-function :: Text -> [Expr] -> Bool -> Either String (State, ByteString)
-function ctx es isMain = do
-  (st, body) <- gen ctx $ mapM_ expr es
-  (_, pre)   <- gen ctx $ prologue (stackSpace st) isMain
-  (_, post)  <- gen ctx $ epilogue (stackSpace st) isMain
+function :: Text -> Int -> [Expr] -> Bool -> Either String (State, ByteString)
+function ctx nargs es isMain = do
+  (st, body) <- gen ctx nargs $ mapM_ expr es
+  (_, pre)   <- gen ctx nargs $ prologue (stackSpace st) isMain
+  (_, post)  <- gen ctx nargs $ epilogue (stackSpace st) isMain
   pure (st, pre <> body <> post)
 
 prologue :: Int -> Bool -> CodeGen ()

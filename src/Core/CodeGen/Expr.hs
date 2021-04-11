@@ -19,6 +19,7 @@ expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
+expr (Arg i)       = ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
 expr (Sym s)       = lookupVariable s >>= \case
   Just slot -> ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
   Nothing   -> throwError $ "no such binding " <> show s
