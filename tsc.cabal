@@ -16,6 +16,7 @@ common shared
     ImportQualifiedPost,
     OverloadedStrings,
     TemplateHaskell,
+    TupleSections
   ghc-options:
     -Wall
 

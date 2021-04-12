@@ -1,7 +1,6 @@
 module Core.Parser.AST
     ( Expr(..)
     , Literal(..)
-    , letVars
     ) where
 
 import Data.Text (Text)
@@ -11,6 +10,7 @@ data Expr
   | Sym Text
   | Lit Literal
   | List [Expr]
+  | Let [(Text, Expr)] [Expr]
   deriving (Eq, Show)
 
 data Literal
@@ -19,9 +19,3 @@ data Literal
   | Fixnum Int
   | String Text
   deriving (Eq, Show)
-
-letVars :: [Expr] -> [(Text, Expr)]
-letVars (List [Sym s, e] : vs) = (s, e)   : letVars vs
-letVars (Sym s           : vs) = (s, Nil) : letVars vs
-letVars []                     = []
-letVars e                      = error $ "Malformed let var entry: " <> show e

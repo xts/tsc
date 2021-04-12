@@ -38,8 +38,8 @@ expr :: Bindings -> P.Expr -> Analyser Expr
 expr _  P.Nil                                   = pure Nil
 expr _  (P.Sym s)                               = pure $ Sym s
 expr bs (P.List (P.Sym "lambda" : ps : es))     = lambda bs ps es
-expr bs (P.List (P.Sym "let" : P.List vs : es)) = letForm bs vs es
 expr bs (P.List xs)                             = List <$> mapM (expr bs) xs
+expr bs (P.Let vs es) = letForm bs vs es
 expr _  (P.Lit lit)                             = literal lit
 
 literal :: P.Literal -> Analyser Expr
@@ -48,18 +48,15 @@ literal (P.Char c)   = pure $ Lit $ Char c
 literal (P.Fixnum k) = pure $ Lit $ Fixnum k
 literal (P.String s) = Lit . String <$> stringLabel s
 
-letForm :: Bindings -> [P.Expr] -> [P.Expr] -> Analyser Expr
+letForm :: Bindings -> [(Text, P.Expr)] -> [P.Expr] -> Analyser Expr
 letForm bs vs es = do
-  let vars = P.letVars vs
-      bs'  = Set.fromList (map fst vars) <> bs
-  vs' <- List <$> mapM (letParam bs) vars
+  let bs' = Set.fromList (map fst vs) <> bs
+  vs' <- mapM (letParam bs) vs
   es' <- mapM (expr bs') es
-  pure $ List (Sym "let" : vs' : es')
+  pure $ Let vs' es'
 
-letParam :: Bindings -> (Text, P.Expr) -> Analyser Expr
-letParam bs (s, e) = do
-  e' <- expr (Set.insert s bs) e
-  pure $ List [Sym s, e']
+letParam :: Bindings -> (Text, P.Expr) -> Analyser (Text, Expr)
+letParam bs (s, e) = (s,) <$> expr (Set.insert s bs) e
 
 indexArgs :: [Text] -> [Expr] -> [Expr]
 indexArgs args = map (mapExpr go)
@@ -73,10 +70,9 @@ freeArgs bs = mconcat . map free
   where
     free (Sym s) | s `elem` bs = Set.singleton s
                  | otherwise   = mempty
-    free (List (Sym "let" : List vs : es)) =
-      let vars = letVars vs
-          vals = freeArgs bs $ map snd vars
-          body = freeArgs (bs `Set.difference` Set.fromList (map fst vars)) es
+    free (Let vs es) =
+      let vals = freeArgs bs $ map snd vs
+          body = freeArgs (bs `Set.difference` Set.fromList (map fst vs)) es
       in vals <> body
     free (List es) = freeArgs bs es
     free _         = mempty

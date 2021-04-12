@@ -5,7 +5,6 @@ module Core.Analyser.AST
   , toList
   , sym
   , mapExpr
-  , letVars
   ) where
 
 import Data.Text (Text)
@@ -20,6 +19,7 @@ data Expr
   | Arg Int
   | Lit Literal
   | List [Expr]
+  | Let [(Text, Expr)] [Expr]
   deriving (Eq, Show)
 
 data Literal
@@ -41,9 +41,3 @@ sym e       = error $ "Not a symbol: " <> show e
 mapExpr :: (Expr -> Expr) -> Expr -> Expr
 mapExpr f (List es) = List $ map (mapExpr f) es
 mapExpr f e         = f e
-
-letVars :: [Expr] -> [(Text, Expr)]
-letVars (List [Sym s, e] : vs) = (s, e)   : letVars vs
-letVars (Sym s           : vs) = (s, Nil) : letVars vs
-letVars []                     = []
-letVars e                      = error $ "Malformed let var entry: " <> show e

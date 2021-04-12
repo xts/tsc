@@ -9,6 +9,7 @@ module Core.Parser
 import Control.Monad (guard)
 import Data.Functor (($>))
 import Data.Either.Combinators (mapLeft)
+import Data.Text (Text)
 import Text.Megaparsec hiding (parse)
 
 import Core.Parser.AST
@@ -44,11 +45,33 @@ literal = Lit <$> (bool <|> number <|> char <|> string)
 sym :: Parser Expr
 sym = Sym <$> T.symbol
 
-list :: Parser Expr
-list = List <$> (T.openBrace *> some expr <* T.closeBrace)
+letForm :: Parser Expr
+letForm = do
+  _ <- single (T.Symbol "let")
+  _ <- T.openBrace
+  vars <- many letVar
+  _ <- T.closeBrace
+  body <- some expr
+  pure $ Let vars body
+
+letVar :: Parser (Text, Expr)
+letVar = letNil <|> letExpr
+  where
+    letNil = do
+      (Sym s) <- sym
+      pure (s, Nil)
+    letExpr = do
+      _ <- T.openBrace
+      (Sym s) <- sym
+      e <- expr
+      _ <- T.closeBrace
+      pure (s, e)
+
+form :: Parser Expr
+form = T.openBrace *> (letForm <|> List <$> some expr) <* T.closeBrace
 
 expr :: Parser Expr
-expr = try nil <|> literal <|> sym <|> list
+expr = try nil <|> literal <|> sym <|> form
 
 program :: Parser [Expr]
 program = many expr <* eof

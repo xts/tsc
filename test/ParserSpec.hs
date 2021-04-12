@@ -73,7 +73,13 @@ spec = do
     -- Let.
     it "parses let" $ do
       parse "(let ((x 2)) (* x x))" `shouldBe` Right
-        [List [Sym "let", List [List [Sym "x", Lit $ Fixnum 2]], List [Sym "*", Sym "x", Sym "x"]]]
+        [Let [("x", Lit (Fixnum 2))] [List [Sym "*", Sym "x", Sym "x"]]]
+      parse "(let (x y) x y)" `shouldBe` Right [Let [("x", Nil), ("y", Nil)] [Sym "x", Sym "y"]]
+      parse "(let () 1)" `shouldBe` Right [Let [] [Lit (Fixnum 1)]]
+      parse "(let (x))" `shouldSatisfy` isLeft
+      parse "(let)" `shouldSatisfy` isLeft
+      parse "(let 1 x)" `shouldSatisfy` isLeft
+      parse "(let \"x\" x)" `shouldSatisfy` isLeft
 
     -- Multiple expressions.
     it "parses multiple expressions" $ do

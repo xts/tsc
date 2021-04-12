@@ -20,6 +20,7 @@ expr Nil           = ins "movq $0x3f, %rax"
 expr (Sym s)       = var s
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
+expr (Let vs es)   = letForm vs es
 expr (Arg i)       = ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
 expr (Lam l)       = do
   ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
@@ -47,7 +48,6 @@ encode l                    = error $ "Unable to encode literal " <> show l
 
 form :: Expr -> [Expr] -> CodeGen ()
 form (Sym "if")  es = formIf es
-form (Sym "let") es = formLet es
 form (Sym s)     es = fvar s es
 form (Lam l)     es = do
   pushArgs es
@@ -114,16 +114,14 @@ formIf [cond, t] = do
   label labFalse
 formIf es = throwError $ "if expects two or three arguments, received " <> show (length es)
 
-formLet :: [Expr] -> CodeGen ()
-formLet (List vs:b:bs) = do
-  let vars = letVars vs
-  forM_ vars $ \(name, e) -> do
+letForm :: [(Text, Expr)] -> [Expr] -> CodeGen ()
+letForm vs es = do
+  forM_ vs $ \(name, e) -> do
     slot <- allocStackSlot
     addVariable name slot
     expr e
     ins $ "movq %rax, " <> stackSlot slot <> "(%rbp)"
-  mapM_ expr (b:bs)
-  forM_ vars $ \(name, _) -> do
+  mapM_ expr es
+  forM_ vs $ \(name, _) -> do
     delVariable name
     freeStackSlot
-formLet e = throwError $ "malformed let form: " <> show e
