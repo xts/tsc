@@ -37,6 +37,7 @@ library
     Core.Options,
     Core.Parser,
     Core.Parser.AST,
+    Core.Renamer,
     Core.Token
   build-depends:
     base          ^>= 4.14,

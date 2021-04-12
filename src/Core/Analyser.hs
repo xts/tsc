@@ -59,8 +59,6 @@ letForm bs vs es = do
 letParam :: Bindings -> (Text, P.Expr) -> Analyser (Text, Expr)
 letParam bs (s, e) = (s,) <$> expr (Set.insert s bs) e
 
--- FIXME This function will trample shadow bindings. Implement a
--- renamer pass prior to analysis.
 indexArgs :: [Text] -> [Expr] -> [Expr]
 indexArgs args = map (mapExpr go)
   where

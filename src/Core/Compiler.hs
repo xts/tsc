@@ -13,6 +13,7 @@ import Core.CodeGen
 import Core.Lexer
 import Core.Parser
 import Core.Options
+import Core.Renamer
 import Core.Linker
 
 compile :: Options -> IO (Either String ())
@@ -24,7 +25,7 @@ compile options = runExceptT pipeline
         File path   -> lift $ readFile path
 
       tokens <- except $ lex source
-      ast    <- except $ parse tokens
+      ast    <- except $ rename =<< parse tokens
       maybeEmit optEmitAst $ show ast
 
       let ast2 = analyse ast
