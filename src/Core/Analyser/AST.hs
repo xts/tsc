@@ -15,11 +15,11 @@ newtype Label = Label { unLabel :: Text }
 data Expr
   = Nil
   | Sym Text
-  | Lam Label
   | Arg Int
   | Lit Literal
   | List [Expr]
   | Let [(Text, Expr)] [Expr]
+  | Lam Label
   deriving (Eq, Show)
 
 data Literal

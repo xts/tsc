@@ -67,8 +67,17 @@ letVar = letNil <|> letExpr
       _ <- T.closeBrace
       pure (s, e)
 
+lambda :: Parser Expr
+lambda = do
+  _ <- single (T.Symbol "lambda")
+  _ <- T.openBrace
+  params <- many T.symbol
+  _ <- T.closeBrace
+  body <- some expr
+  pure $ Lam params body
+
 form :: Parser Expr
-form = T.openBrace *> (letForm <|> List <$> some expr) <* T.closeBrace
+form = T.openBrace *> (letForm <|> lambda <|> List <$> some expr) <* T.closeBrace
 
 expr :: Parser Expr
 expr = try nil <|> literal <|> sym <|> form

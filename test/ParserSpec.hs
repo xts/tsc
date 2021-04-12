@@ -81,6 +81,17 @@ spec = do
       parse "(let 1 x)" `shouldSatisfy` isLeft
       parse "(let \"x\" x)" `shouldSatisfy` isLeft
 
+    -- Lambda.
+    it "parser lambda" $ do
+      parse "(lambda () ())" `shouldBe` Right [Lam [] [Nil]]
+      parse "(lambda (x) x)" `shouldBe` Right [Lam ["x"] [Sym "x"]]
+      parse "(lambda (x y) x y)" `shouldBe` Right [Lam ["x", "y"] [Sym "x", Sym "y"]]
+      parse "(lambda ())" `shouldSatisfy` isLeft
+      parse "(lambda 1 ())" `shouldSatisfy` isLeft
+      parse "(lambda \"x\" ())" `shouldSatisfy` isLeft
+      parse "(lambda ((x 1)) ())" `shouldSatisfy` isLeft
+
+
     -- Multiple expressions.
     it "parses multiple expressions" $ do
       parse "()()" `shouldBe` Right [Nil, Nil]

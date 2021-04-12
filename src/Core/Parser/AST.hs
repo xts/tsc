@@ -11,6 +11,7 @@ data Expr
   | Lit Literal
   | List [Expr]
   | Let [(Text, Expr)] [Expr]
+  | Lam [Text] [Expr]
   deriving (Eq, Show)
 
 data Literal

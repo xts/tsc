@@ -35,12 +35,12 @@ analyse :: [P.Expr] -> ([Expr], Info)
 analyse es = runState (mapM (expr mempty) es) $ Info Map.empty []
 
 expr :: Bindings -> P.Expr -> Analyser Expr
-expr _  P.Nil                                   = pure Nil
-expr _  (P.Sym s)                               = pure $ Sym s
-expr bs (P.List (P.Sym "lambda" : ps : es))     = lambda bs ps es
-expr bs (P.List xs)                             = List <$> mapM (expr bs) xs
+expr _  P.Nil         = pure Nil
+expr _  (P.Lit lit)   = literal lit
+expr _  (P.Sym s)     = pure $ Sym s
+expr bs (P.List xs)   = List <$> mapM (expr bs) xs
 expr bs (P.Let vs es) = letForm bs vs es
-expr _  (P.Lit lit)                             = literal lit
+expr bs (P.Lam ps es) = lambda bs ps es
 
 literal :: P.Literal -> Analyser Expr
 literal (P.Bool b)   = pure $ Lit $ Bool b
@@ -77,14 +77,13 @@ freeArgs bs = mconcat . map free
     free (List es) = freeArgs bs es
     free _         = mempty
 
-lambda :: Bindings -> P.Expr -> [P.Expr] -> Analyser Expr
+lambda :: Bindings -> [Text] -> [P.Expr] -> Analyser Expr
 lambda bs ps es = do
-  params  <- map sym . toList <$> expr bs ps
-  body    <- indexArgs params <$> mapM (expr bs) es
+  body    <- indexArgs ps <$> mapM (expr bs) es
   lambdas <- gets inLambdas
   let free = Set.toList $ freeArgs bs body
   let lb = label "_lambda_" (length lambdas)
-  modify $ \st -> st { inLambdas = (Lambda params free body, lb) : lambdas }
+  modify $ \st -> st { inLambdas = (Lambda ps free body, lb) : lambdas }
   pure $ Lam lb
 
 stringLabel :: Text -> Analyser Label
