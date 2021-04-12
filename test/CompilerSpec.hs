@@ -104,3 +104,7 @@ spec = parallel $ do
     it "compiles fibonacci" $ do
       running "(let ((fib (lambda (fib k) (if (< k 2) 1 (+ (fib fib (- k 1)) (fib fib (- k 2))))))) (print (fib fib 30)))"
         `shouldReturn` "832040"
+
+    -- Renamer.
+    it "compiles closures without overriding shadow bindings" $ do
+      running "(print ((lambda (x) (let ((x #t)) x)) #f))" `shouldReturn` "#t"
