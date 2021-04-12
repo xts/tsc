@@ -41,6 +41,7 @@ expr _  (P.Sym s)     = pure $ Sym s
 expr bs (P.List xs)   = List <$> mapM (expr bs) xs
 expr bs (P.Let vs es) = letForm bs vs es
 expr bs (P.Lam ps es) = lambda bs ps es
+expr bs (P.If p t f)  = If <$> expr bs p <*> expr bs t <*> expr bs f
 
 literal :: P.Literal -> Analyser Expr
 literal (P.Bool b)   = pure $ Lit $ Bool b
@@ -58,6 +59,8 @@ letForm bs vs es = do
 letParam :: Bindings -> (Text, P.Expr) -> Analyser (Text, Expr)
 letParam bs (s, e) = (s,) <$> expr (Set.insert s bs) e
 
+-- FIXME This function will trample shadow bindings. Implement a
+-- renamer pass prior to analysis.
 indexArgs :: [Text] -> [Expr] -> [Expr]
 indexArgs args = map (mapExpr go)
   where

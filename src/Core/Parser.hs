@@ -45,6 +45,14 @@ literal = Lit <$> (bool <|> number <|> char <|> string)
 sym :: Parser Expr
 sym = Sym <$> T.symbol
 
+ifForm :: Parser Expr
+ifForm = do
+  _ <- single (T.Symbol "if")
+  cond <- expr
+  t <- expr
+  f <- expr <|> lookAhead T.closeBrace $> Nil
+  pure $ If cond t f
+
 letForm :: Parser Expr
 letForm = do
   _ <- single (T.Symbol "let")
@@ -77,7 +85,7 @@ lambda = do
   pure $ Lam params body
 
 form :: Parser Expr
-form = T.openBrace *> (letForm <|> lambda <|> List <$> some expr) <* T.closeBrace
+form = T.openBrace *> (ifForm <|> letForm <|> lambda <|> List <$> some expr) <* T.closeBrace
 
 expr :: Parser Expr
 expr = try nil <|> literal <|> sym <|> form

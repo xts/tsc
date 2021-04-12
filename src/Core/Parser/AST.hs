@@ -12,6 +12,7 @@ data Expr
   | List [Expr]
   | Let [(Text, Expr)] [Expr]
   | Lam [Text] [Expr]
+  | If Expr Expr Expr
   deriving (Eq, Show)
 
 data Literal

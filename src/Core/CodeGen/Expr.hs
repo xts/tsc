@@ -25,6 +25,7 @@ expr (Arg i)       = ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
 expr (Lam l)       = do
   ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
   ins "orq $6, %rax" -- Tag as closure.
+expr (If p t f)    = ifForm p t f
 expr e             = throwError $ "Unable to lower " <> show e
 
 var :: Text -> CodeGen ()
@@ -47,7 +48,6 @@ encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
 form :: Expr -> [Expr] -> CodeGen ()
-form (Sym "if")  es = formIf es
 form (Sym s)     es = fvar s es
 form (Lam l)     es = do
   pushArgs es
@@ -93,11 +93,11 @@ _car = ins "leaq -1(%rax), %rax"
 _cdr :: CodeGen ()
 _cdr = ins "leaq 7(%rax), %rax)"
 
-formIf :: [Expr] -> CodeGen ()
-formIf [cond, t, f] = do
+ifForm :: Expr -> Expr -> Expr -> CodeGen ()
+ifForm p t f = do
   labFalse <- funLabel
   labEnd   <- funLabel
-  expr cond
+  expr p
   ins "cmpq $0x6f, %rax"
   ins $ "jz " <> labFalse
   expr t
@@ -105,14 +105,6 @@ formIf [cond, t, f] = do
   label labFalse
   expr f
   label labEnd
-formIf [cond, t] = do
-  labFalse <- funLabel
-  expr cond
-  ins "cmpq $0x6f, %rax"
-  ins $ "jz " <> labFalse
-  expr t
-  label labFalse
-formIf es = throwError $ "if expects two or three arguments, received " <> show (length es)
 
 letForm :: [(Text, Expr)] -> [Expr] -> CodeGen ()
 letForm vs es = do
