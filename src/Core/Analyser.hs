@@ -16,7 +16,7 @@ import Data.Text (Text, pack)
 import Core.Analyser.AST
 import Core.Parser.AST qualified as P
 
-type Bindings = Set Text
+type Bindings = [Text]
 
 data Lambda = Lambda
   { lmParams :: [Text]
@@ -51,13 +51,13 @@ literal (P.String s) = Lit . String <$> stringLabel s
 
 letForm :: Bindings -> [(Text, P.Expr)] -> [P.Expr] -> Analyser Expr
 letForm bs vs es = do
-  let bs' = Set.fromList (map fst vs) <> bs
+  let bs' = map fst vs <> bs
   vs' <- mapM (letParam bs) vs
   es' <- mapM (expr bs') es
   pure $ Let vs' es'
 
 letParam :: Bindings -> (Text, P.Expr) -> Analyser (Text, Expr)
-letParam bs (s, e) = (s,) <$> expr (Set.insert s bs) e
+letParam bs (s, e) = (s,) <$> expr (s:bs) e
 
 indexArgs :: [Text] -> [Expr] -> [Expr]
 indexArgs args = map (mapExpr go)
@@ -73,7 +73,7 @@ freeArgs bs = mconcat . map free
                  | otherwise   = mempty
     free (Let vs es) =
       let vals = freeArgs bs $ map snd vs
-          body = freeArgs (bs `Set.difference` Set.fromList (map fst vs)) es
+          body = freeArgs bs es
       in vals <> body
     free (List es) = freeArgs bs es
     free _         = mempty
