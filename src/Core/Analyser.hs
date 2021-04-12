@@ -80,7 +80,7 @@ freeArgs bs = mconcat . map free
 
 lambda :: Bindings -> [Text] -> [P.Expr] -> Analyser Expr
 lambda bs ps es = do
-  body    <- indexArgs ps <$> mapM (expr bs) es
+  body    <- indexArgs ps <$> mapM (expr $ ps <> bs) es
   lambdas <- gets inLambdas
   let free = Set.toList $ freeArgs bs body
   let lb = label "_lambda_" (length lambdas)
