@@ -10,7 +10,6 @@ import Prelude hiding (lex, readFile)
 
 import Core.Analyser
 import Core.CodeGen
-import Core.Lexer
 import Core.Parser
 import Core.Options
 import Core.Renamer
@@ -24,8 +23,7 @@ compile options = runExceptT pipeline
         Source text -> pure text
         File path   -> lift $ readFile path
 
-      tokens <- except $ lex source
-      ast    <- except $ rename =<< parse tokens
+      ast    <- except $ rename =<< parse source
       maybeEmit optEmitAst $ show ast
 
       let ast2 = analyse ast

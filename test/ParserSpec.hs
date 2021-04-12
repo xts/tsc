@@ -7,11 +7,7 @@ import Data.Text (Text)
 import Test.Hspec
 
 import Core.Parser.AST
-import Core.Lexer qualified as L
-import Core.Parser qualified as P
-
-parse :: Text -> Either String [Expr]
-parse source = L.lex source >>= P.parse
+import Core.Parser
 
 spec :: Spec
 spec = do
@@ -91,7 +87,6 @@ spec = do
       parse "(lambda 1 ())" `shouldSatisfy` isLeft
       parse "(lambda \"x\" ())" `shouldSatisfy` isLeft
       parse "(lambda ((x 1)) ())" `shouldSatisfy` isLeft
-
 
     -- Multiple expressions.
     it "parses multiple expressions" $ do

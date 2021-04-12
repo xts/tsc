@@ -32,7 +32,6 @@ library
     Core.CodeGen.Primitives,
     Core.CodeGen.State,
     Core.Compiler,
-    Core.Lexer,
     Core.Linker,
     Core.Options,
     Core.Parser,
