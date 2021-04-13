@@ -3,7 +3,6 @@
 module ParserSpec (spec) where
 
 import Data.Either (isLeft)
-import Data.Text (Text)
 import Test.Hspec
 
 import Core.Parser.AST
