@@ -17,9 +17,7 @@ expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
 expr (Let vs es)   = letForm vs es
 expr (Arg i)       = ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
-expr (Lam _ _ l)   = do
-  ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
-  ins "orq $6, %rax" -- Tag as closure.
+expr (Lam a f l)   = lambda a f l
 expr (If p t f)    = ifForm p t f
 expr e             = throwError $ "Unable to lower " <> show e
 
@@ -47,14 +45,51 @@ form (Sym s) es = fvar s es
 form e@(Lam _ _ _) es = do
   pushArgs es
   expr e
-  ins "subq $6, %rax"
-  ins "callq *%rax"
+  callClosure
 form (Arg i) es = do
   pushArgs es
   ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
-  ins "subq $6, %rax"
-  ins "callq *%rax"
+  callClosure
 form e _  = throwError $ "don't know how to evaluate form " <> show e
+
+callClosure :: CodeGen ()
+callClosure = do
+  ins "subq $6, %rax"
+  ins "movq %rax, %rdi"
+  ins "movq (%rax), %rax"
+  ins "callq *%rax"
+
+heapAlign16 :: CodeGen ()
+heapAlign16 = do
+  ins "movq %rsi, %rax"
+  ins "andq $0xf, %rax"
+  ins "addq $0x10, %rsi"
+  ins "subq %rax, %rsi"
+
+heapAllocate :: Int -> CodeGen ()
+heapAllocate k = do
+  ins "movq %rsi, %rax"
+  ins $ "addq $" <> show k <> ", %rsi"
+
+lambda :: Args -> FreeArgs -> Label -> CodeGen ()
+lambda _ (FreeArgs fs) l = do
+  heapAlign16
+
+  -- Store lambda address at word 0.
+  ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
+  ins "movq %rax, 0(%rsi)"
+
+  -- Store values of free variables in subsequent words.
+  forM_ (zip [1..] fs) $ \(i, f) -> do
+    lookupVariable f >>= \case
+      Just slot -> do
+        ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
+        ins $ "movq %rax, " <> show (i * 8 :: Int) <> "(%rsi)"
+      Nothing -> throwError $ "No such binding: " <> show f
+
+  -- Tag the address as a closure.
+  heapAllocate $ (1 + length fs) * 8
+  ins "orq $6, %rax"
 
 fvar :: Text -> [Expr] -> CodeGen ()
 fvar s es = lookupPrimitive s >>= \case
@@ -62,8 +97,7 @@ fvar s es = lookupPrimitive s >>= \case
   Nothing   -> do
     pushArgs es
     var s
-    ins "subq $6, %rax"
-    ins "callq *%rax"
+    callClosure
 
 -- The callee expects its arguments starting in stack slot 3. This is
 -- because slot 1 is the return address and slot 2 is the rbp save.
