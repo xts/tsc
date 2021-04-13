@@ -82,7 +82,7 @@ lambda bs ps es = do
   let free = Set.toList $ freeArgs bs es
   let lb = label "_lambda_" (length lambdas)
   modify $ \st -> st { inLambdas = (Lambda ps free body, lb) : lambdas }
-  pure $ Lam lb
+  pure $ Lam (Args ps) (FreeArgs free) lb
 
 stringLabel :: Text -> Analyser Label
 stringLabel text = do

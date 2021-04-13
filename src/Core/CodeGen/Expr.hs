@@ -17,7 +17,7 @@ expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
 expr (Let vs es)   = letForm vs es
 expr (Arg i)       = ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
-expr (Lam l)       = do
+expr (Lam _ _ l)   = do
   ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
   ins "orq $6, %rax" -- Tag as closure.
 expr (If p t f)    = ifForm p t f
@@ -43,11 +43,13 @@ encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
 form :: Expr -> [Expr] -> CodeGen ()
-form (Sym s)     es = fvar s es
-form (Lam l)     es = do
+form (Sym s) es = fvar s es
+form e@(Lam _ _ _) es = do
   pushArgs es
-  ins $ "callq " <> encodeUtf8 (unLabel l)
-form (Arg i)     es = do
+  expr e
+  ins "subq $6, %rax"
+  ins "callq *%rax"
+form (Arg i) es = do
   pushArgs es
   ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
   ins "subq $6, %rax"

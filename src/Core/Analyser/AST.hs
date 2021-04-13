@@ -2,13 +2,12 @@ module Core.Analyser.AST
   ( Expr(..)
   , Literal(..)
   , Label(..)
+  , Args(..)
+  , FreeArgs(..)
   , toList
   , sym
   , mapExpr
   ) where
-
-newtype Label = Label { unLabel :: Text }
-  deriving (Eq, Show)
 
 data Expr
   = Nil
@@ -17,7 +16,7 @@ data Expr
   | Lit Literal
   | List [Expr]
   | Let [(Text, Expr)] [Expr]
-  | Lam Label
+  | Lam Args FreeArgs Label
   | If Expr Expr Expr
   deriving (Eq, Show)
 
@@ -26,6 +25,15 @@ data Literal
   | String Label
   | Char Char
   | Bool Bool
+  deriving (Eq, Show)
+
+newtype Label = Label { unLabel :: Text }
+  deriving (Eq, Show)
+
+newtype FreeArgs = FreeArgs { unFreeArgs :: [Text] }
+  deriving (Eq, Show)
+
+newtype Args = Args { unArgs :: [Text] }
   deriving (Eq, Show)
 
 sym :: Expr -> Text
