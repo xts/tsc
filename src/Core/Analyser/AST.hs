@@ -7,9 +7,6 @@ module Core.Analyser.AST
   , mapExpr
   ) where
 
-import Data.Bifunctor (second)
-import Data.Text (Text)
-
 newtype Label = Label { unLabel :: Text }
   deriving (Eq, Show)
 
@@ -30,11 +27,6 @@ data Literal
   | Char Char
   | Bool Bool
   deriving (Eq, Show)
-
-toList :: Expr -> [Expr]
-toList Nil       = []
-toList (List es) = es
-toList e         = error $ "Not list-like: " <> show e
 
 sym :: Expr -> Text
 sym (Sym s) = s

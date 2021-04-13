@@ -2,11 +2,7 @@ module Core.Linker
   ( link
   ) where
 
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Except (ExceptT)
-import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
-import Data.ByteString.UTF8 (toString)
 import Data.FileEmbed (embedFile)
 import Prelude hiding (writeFile)
 import System.Exit (ExitCode(..))
@@ -23,7 +19,7 @@ link source out = do
         rtsPath = dir <> "/rts.c"
     lift $ BS.writeFile srcPath source
     lift $ BS.writeFile rtsPath rts
-    (rc, _, stderr) <- readProcess (proc "clang" [rtsPath, srcPath, "-o", out])
+    (rc, _, err) <- readProcess (proc "clang" [rtsPath, srcPath, "-o", out])
     case rc of
       ExitSuccess   -> pure ()
-      ExitFailure _ -> fail $ toString $ BS.toStrict stderr
+      ExitFailure _ -> fail $ decodeUtf8 $ BS.toStrict err

@@ -4,8 +4,6 @@ module Core.Options
   , defOptions
   ) where
 
-import Data.Text (Text)
-
 data Source
   = Source Text
   | File String

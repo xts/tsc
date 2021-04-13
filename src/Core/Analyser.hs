@@ -5,13 +5,9 @@ module Core.Analyser
   , analyse
   ) where
 
-import Control.Monad.State (State, runState,gets, modify)
-import Data.List (find)
-import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Set (Set)
 import Data.Set qualified as Set
-import Data.Text (Text, pack)
+import Data.Text (pack)
 
 import Core.Analyser.AST
 import Core.Parser.AST qualified as P

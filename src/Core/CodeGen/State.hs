@@ -17,15 +17,10 @@ module Core.CodeGen.State
   , funLabel
   ) where
 
-import Control.Monad.RWS (RWST, execRWST, ask, tell, get, modify)
+import Control.Monad.RWS (RWST, execRWST, tell)
 import Control.Monad.Except (Except, runExcept)
-import Data.ByteString (ByteString)
-import Data.ByteString.UTF8 (fromString)
-import Data.List (find)
-import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
+import Prelude hiding (State)
 
 import Core.Analyser.AST
 
@@ -46,10 +41,10 @@ data State = State
 type CodeGen a = RWST Env ByteString State (Except String) a
 
 runCodeGen :: Text -> Int -> Map Text Primitive -> CodeGen () -> Either String (State, ByteString)
-runCodeGen ctx preallocStack ps f = runExcept $ execRWST f env state
+runCodeGen ctx preallocStack ps f = runExcept $ execRWST f env st
   where
-    env   = Env ctx ps
-    state = State preallocStack preallocStack 0 []
+    env = Env ctx ps
+    st  = State preallocStack preallocStack 0 []
 
 emit :: ByteString -> CodeGen ()
 emit = tell
@@ -68,8 +63,8 @@ addVariable name slot = do
 delVariable :: Text -> CodeGen ()
 delVariable name = do
   vars <- stVariables <$> get
-  let (before, after) = break ((== name) . fst) vars
-  modify $ \st -> st { stVariables = before ++ tail after }
+  let (before, _:after) = break ((== name) . fst) vars
+  modify $ \st -> st { stVariables = before ++ after }
 
 lookupVariable :: Text -> CodeGen (Maybe Int)
 lookupVariable name = fmap snd . find ((== name) . fst) . stVariables <$> get

@@ -2,7 +2,6 @@
 
 module AnalyserSpec (spec) where
 
-import Data.Text (Text)
 import Test.Hspec
 
 import Core.Analyser qualified as A

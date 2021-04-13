@@ -3,12 +3,9 @@ module Core.Renamer
   ) where
 
 import Control.Monad.Except (Except, runExcept, throwError)
-import Control.Monad.State (StateT, evalStateT, get, gets, put)
 import Data.Foldable (foldrM)
-import Data.Map (Map, lookup, insert, insertWith)
-import Data.Maybe (fromMaybe)
-import Data.Text (Text, pack)
-import Prelude hiding (lookup)
+import Data.Map (lookup, insert, insertWith)
+import Data.Text (pack)
 
 import Core.Parser.AST
 import Core.CodeGen.Primitives

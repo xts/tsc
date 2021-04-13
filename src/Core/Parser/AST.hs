@@ -3,8 +3,6 @@ module Core.Parser.AST
     , Literal(..)
     ) where
 
-import Data.Text (Text)
-
 data Expr
   = Nil
   | Sym Text

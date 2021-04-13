@@ -3,13 +3,8 @@ module Core.CodeGen.Expr
   , literal
   ) where
 
-import Control.Monad (forM_)
 import Control.Monad.Except (throwError)
-import Data.ByteString (ByteString)
-import Data.ByteString.UTF8 (fromString)
-import Data.Char (isAscii, ord)
-import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
+import Data.Char (isAscii)
 
 import Core.Analyser.AST
 import Core.CodeGen.State

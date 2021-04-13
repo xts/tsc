@@ -2,11 +2,9 @@ module Core.Compiler
   ( compile
   ) where
 
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Except (ExceptT, except, runExceptT, throwE)
+import Control.Monad.Trans.Except (except, throwE)
 import Data.Text.IO (readFile)
-import Data.ByteString.UTF8 (toString)
-import Prelude hiding (lex, readFile)
+import Prelude hiding (readFile)
 
 import Core.Analyser
 import Core.CodeGen
@@ -30,7 +28,7 @@ compile options = runExceptT pipeline
       maybeEmit optEmitAst2 $ show ast2
 
       asm <- except $ lower ast2
-      maybeEmit optEmitAsm $ toString asm
+      maybeEmit optEmitAsm $ decodeUtf8 asm
 
       link asm (optOut options)
 

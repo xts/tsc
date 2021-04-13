@@ -1,8 +1,6 @@
 module CompilerSpec where
 
-import Data.Text (Text)
 import Test.Hspec
-import Data.ByteString.UTF8 (toString)
 import Data.ByteString.Char8 (strip)
 import Data.ByteString qualified as BS
 import System.Process.Typed (readProcess, proc)
@@ -17,9 +15,9 @@ running source = withSystemTempFile "a.out" $ \path _ ->
   compile (defOptions { optSource = Source source, optOut = path }) >>= \case
     Left err -> pure err
     Right _  -> do
-      (rc, stdout, _) <- readProcess (proc path [])
+      (rc, out, _) <- readProcess (proc path [])
       case rc of
-        ExitSuccess   -> pure $ toString $ strip $ BS.toStrict stdout
+        ExitSuccess   -> pure $ decodeUtf8 $ strip $ BS.toStrict out
         ExitFailure _ -> pure "Failed to run program"
 
 spec :: Spec

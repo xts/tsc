@@ -19,6 +19,13 @@ common shared
     TupleSections
   ghc-options:
     -Wall
+  mixins:
+    base hiding (Prelude),
+    relude (Relude as Prelude),
+    relude
+  build-depends:
+    base          ^>= 4.14,
+    relude        ^>= 1.0,
 
 library
   import:          shared
@@ -36,10 +43,8 @@ library
     Core.Options,
     Core.Parser,
     Core.Parser.AST,
-    Core.Renamer,
-    Core.Token
+    Core.Renamer
   build-depends:
-    base          ^>= 4.14,
     bytestring    ^>= 0.11,
     containers    ^>= 0.6,
     either        ^>= 5.0,

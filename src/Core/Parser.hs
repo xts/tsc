@@ -6,15 +6,13 @@ module Core.Parser
   , fixnumMax
   ) where
 
-import Control.Monad (guard)
-import Data.Functor (($>))
 import Data.Either.Combinators (mapLeft)
-import Data.Text (Text, pack)
-import Data.Void (Void)
-import Text.Megaparsec hiding (parse, token, tokens)
+import Data.Text (pack)
+import Text.Megaparsec hiding (parse, token, tokens, many)
 import Text.Megaparsec.Char hiding (char, string)
 import Text.Megaparsec.Char qualified as C
 import Text.Megaparsec.Char.Lexer qualified as L
+import Prelude hiding (bool, some)
 
 import Core.Parser.AST
 

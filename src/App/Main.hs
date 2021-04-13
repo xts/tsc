@@ -1,7 +1,5 @@
 module Main where
 
-import System.Exit (exitFailure)
-
 import Options
 import Core.Compiler
 

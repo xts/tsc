@@ -6,7 +6,6 @@ module Core.CodeGen.Emitters
   , indent
   ) where
 
-import Data.ByteString (ByteString)
 import Core.CodeGen.State
 
 ins :: ByteString -> CodeGen ()

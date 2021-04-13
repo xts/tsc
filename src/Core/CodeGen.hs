@@ -2,13 +2,8 @@ module Core.CodeGen
   ( lower
   ) where
 
-import Control.Monad (forM, forM_, when)
-import Data.ByteString (ByteString)
-import Data.ByteString.UTF8 (fromString)
-import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
+import Prelude hiding (State)
 
 import Core.Analyser
 import Core.Analyser.AST

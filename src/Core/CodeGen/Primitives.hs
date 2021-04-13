@@ -3,9 +3,7 @@ module Core.CodeGen.Primitives
   ) where
 
 import Control.Monad.Except (throwError)
-import Data.Map (Map, fromList)
-import Data.Text (Text)
-import Prelude hiding (lookup, print)
+import Prelude hiding (print)
 
 import Core.Analyser.AST
 import Core.CodeGen.State
