@@ -66,23 +66,24 @@ indexArgs args = map (mapExpr go)
     go e = e
     index' s = snd <$> find ((== s) . fst) (zip args [1..])
 
-freeArgs :: Bindings -> [Expr] -> Set Text
+freeArgs :: Bindings -> [P.Expr] -> Set Text
 freeArgs bs = mconcat . map free
   where
-    free (Sym s) | s `elem` bs = Set.singleton s
+    free (P.Sym s) | s `elem` bs = Set.singleton s
                  | otherwise   = mempty
-    free (Let vs es) =
+    free (P.Let vs es) =
       let vals = freeArgs bs $ map snd vs
           body = freeArgs bs es
       in vals <> body
-    free (List es) = freeArgs bs es
+    free (P.Lam vs es) = freeArgs (vs <> bs) es
+    free (P.List es)   = freeArgs bs es
     free _         = mempty
 
 lambda :: Bindings -> [Text] -> [P.Expr] -> Analyser Expr
 lambda bs ps es = do
   body    <- indexArgs ps <$> mapM (expr $ ps <> bs) es
   lambdas <- gets inLambdas
-  let free = Set.toList $ freeArgs bs body
+  let free = Set.toList $ freeArgs bs es
   let lb = label "_lambda_" (length lambdas)
   modify $ \st -> st { inLambdas = (Lambda ps free body, lb) : lambdas }
   pure $ Lam lb
