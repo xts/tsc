@@ -6,9 +6,9 @@ import Control.Monad.Except (throwError)
 import Prelude hiding (print)
 
 import Core.Analyser.AST
-import Core.CodeGen.State
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
+import Core.CodeGen.Monad
 
 primitives :: Map Text Primitive
 primitives = fromList

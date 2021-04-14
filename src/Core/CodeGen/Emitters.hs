@@ -6,7 +6,7 @@ module Core.CodeGen.Emitters
   , indent
   ) where
 
-import Core.CodeGen.State
+import Core.CodeGen.Monad
 
 ins :: ByteString -> CodeGen ()
 ins text = emit $ indent <> text <> "\n"

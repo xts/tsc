@@ -7,8 +7,8 @@ import Control.Monad.Except (throwError)
 import Data.Char (isAscii)
 
 import Core.Analyser.AST
-import Core.CodeGen.State
 import Core.CodeGen.Emitters
+import Core.CodeGen.Monad
 
 expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"

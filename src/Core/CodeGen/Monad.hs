@@ -1,4 +1,4 @@
-module Core.CodeGen.State
+module Core.CodeGen.Monad
   ( CodeGen
   , Primitive
   , State

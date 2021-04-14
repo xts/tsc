@@ -7,9 +7,9 @@ import Prelude hiding (State)
 
 import Core.Analyser
 import Core.Analyser.AST
-import Core.CodeGen.State
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
+import Core.CodeGen.Monad
 import Core.CodeGen.Primitives
 
 lower :: ([Expr], Info) -> Either String ByteString
