@@ -9,17 +9,22 @@ import System.Exit (ExitCode(..))
 import System.Process.Typed (readProcess, proc)
 import System.IO.Temp (withSystemTempDirectory)
 
-rts :: ByteString
-rts = $(embedFile "src/Core/rts.c")
+rtsMain :: ByteString
+rtsMain = $(embedFile "src/Core/RTS/main.c")
+
+rtsPrint :: ByteString
+rtsPrint = $(embedFile "src/Core/RTS/print.c")
 
 link :: ByteString -> String -> ExceptT String IO ()
 link source out = do
   withSystemTempDirectory "tsc.work" $ \dir -> do
-    let srcPath = dir <> "/program.s"
-        rtsPath = dir <> "/rts.c"
+    let srcPath      = dir <> "/program.s"
+        rtsMainPath  = dir <> "/main.c"
+        rtsPrintPath = dir <> "/print.c"
     lift $ BS.writeFile srcPath source
-    lift $ BS.writeFile rtsPath rts
-    (rc, _, err) <- readProcess (proc "clang" [rtsPath, srcPath, "-o", out])
+    lift $ BS.writeFile rtsMainPath rtsMain
+    lift $ BS.writeFile rtsPrintPath rtsPrint
+    (rc, _, err) <- readProcess (proc "clang" [rtsMainPath, rtsPrintPath, srcPath, "-o", out])
     case rc of
       ExitSuccess   -> pure ()
       ExitFailure _ -> fail $ decodeUtf8 $ BS.toStrict err

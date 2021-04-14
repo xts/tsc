@@ -4,72 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define CHAR_MASK 0xf
-#define FIXNUM_MASK 0x3
-#define BOOLEAN_TRUE 0x2f
-#define BOOLEAN_FALSE 0x6f
-#define NIL 0x3f
+#define PAGE_SIZE 4096
+#define HEAP_PAGES 4   /* Heap memory to allocate, in pages. */
+#define STACK_PAGES 2  /* Stack memory to allocate, in pages. */
 
-int is_fixnum(void *value) {
-    return !((int)value & FIXNUM_MASK);
-}
-
-int is_true(void *value) {
-    return (int)value == BOOLEAN_TRUE;
-}
-
-int is_false(void *value) {
-    return (int)value == BOOLEAN_FALSE;
-}
-
-int is_boolean(void *value) {
-    return is_true(value) || is_false(value);
-}
-
-int is_nil(void *value) {
-    return (int)value == NIL;
-}
-
-int is_char(void *value) {
-    return ((int)value & 0xff) == CHAR_MASK;
-}
-
-int is_string(void *value) {
-    return ((int)value & 0x7) == 0x3;
-}
-
-int from_fixnum(void *value) {
-    return (int)(value) >> 2;
-}
-
-char from_char(void *value) {
-    return ((int)(value) >> 8) & 0xff;
-}
-
-const char *from_string(void *value) {
-    return (const char *)((uintptr_t)(value) & ~7);
-}
-
-void print(void* value) {
-    if (is_fixnum(value)) {
-        printf("%d", from_fixnum(value));
-    } else if (is_true(value)) {
-        printf("#t");
-    } else if (is_false(value)) {
-        printf("#f");
-    } else if (is_char(value)) {
-        printf("%c", from_char(value));
-    } else if (is_nil(value)) {
-        printf("()");
-    } else if (is_string(value)) {
-        printf("%s", from_string(value));
-    } else {
-        printf("Invalid value: %p", value);
-    }
-    printf("\n");
-}
-
-int scheme_entry(void *heap, void *stack);
+/* The address of our page fault moat, residing between the heap and the stack. */
+void *g_moat = NULL;
 
 void *align(void *ptr, int to) {
     uintptr_t start = (uintptr_t)ptr;
@@ -79,13 +19,7 @@ void *align(void *ptr, int to) {
     return (void *)start;
 }
 
-#define PAGE_SIZE 4096
-#define HEAP_PAGES 4
-#define STACK_PAGES 2
-
-void *g_moat = NULL;
-
-void install_handler(void (*handler)(int,siginfo_t *,void *)) {
+void install_page_fault_handler(void (*handler)(int,siginfo_t *,void *)) {
     /* Set up an alternative stack for signal handlers. */
     struct __darwin_sigaltstack altstack;
     altstack.ss_sp = malloc(SIGSTKSZ);
@@ -108,8 +42,7 @@ void install_handler(void (*handler)(int,siginfo_t *,void *)) {
     }
 }
 
-
-void fault_handler(int signo, siginfo_t *info, void *context) {
+void page_fault_handler(int signo, siginfo_t *info, void *context) {
     (void)signo;
     (void)context;
 
@@ -131,6 +64,8 @@ void fault_handler(int signo, siginfo_t *info, void *context) {
     exit(11);
 }
 
+int scheme_entry(void *heap, void *stack);
+
 int main() {
     /* Allocate heap and stack, with an overflow trap in between. */
     void *mem = malloc(PAGE_SIZE * (HEAP_PAGES + STACK_PAGES + 1));
@@ -139,15 +74,14 @@ int main() {
     void *stack = g_moat + PAGE_SIZE;
 
     /* Protect the space between the heap and the stack
-     * to detect OOM and stack overflow.
-     */
+     * to detect OOM and stack overflow. */
     if (mprotect(g_moat, PAGE_SIZE, PROT_READ) == -1) {
         perror("mprotect");
         exit(1);
     }
 
     /* Install a page fault handler to report OOM/stack overflow. */
-    install_handler(fault_handler);
+    install_page_fault_handler(page_fault_handler);
 
     /* Start program. */
     return scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE - 8); //
