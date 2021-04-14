@@ -16,13 +16,14 @@ primitives = fromList
   , ("+", add)
   , ("-", sub)
   , ("<", lessThan)
+  , ("set!", set)
   ]
 
 print :: [Expr] -> CodeGen ()
 print [e] = do
   expr e
   ins "pushq %rsi"      -- save heap ptr.
-  ins" pushq %rdi"      -- save closure ptr.
+  ins "pushq %rdi"      -- save closure ptr.
   ins "movq %rax, %rdi" -- argument to print.
 
   ins "pushq %rbp"      -- align stack to 16 bytes.
@@ -66,3 +67,14 @@ lessThan [a, b] = do
   literal $ Bool True
   label lab
 lessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)
+
+set :: [Expr] -> CodeGen ()
+set [Sym v, e] = lookupVariable v >>= \case
+  Just slot -> do
+    expr e
+    ins "pushq %rax"
+    varAddr slot
+    ins "popq %rdx"
+    ins "movq %rdx, (%rax)"
+  Nothing -> throwError $ "No such variable: " <> show v
+set es = throwError $ "set! expects 2 arguments, received " <> show (length es)

@@ -114,3 +114,9 @@ spec = parallel $ do
     -- Closures.
     it "compiles closures and captures static values" $ do
       running "(let ((f (lambda () (let ((x 42)) (lambda () x))))) (print ((f))))" `shouldReturn` "42"
+
+    -- set!
+    it "compiles destructive updates" $ do
+      running "(let ((x 0)) (set! x 42) (print x))" `shouldReturn` "42"
+      running "(let ((count (let ((c 0)) (lambda () (set! c (+ 1 c)) c)))) (print (count)) (print (count)) (print (count)))"
+        `shouldReturn` "1\n2\n3"

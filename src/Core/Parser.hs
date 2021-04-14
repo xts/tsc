@@ -127,4 +127,5 @@ sym = pack <$> lexeme (try special <|> normal)
       b <- many (alphaNumChar <|> symChar)
       pure $ a : b
 
-    symChar = C.char '*' <|> C.char '/' <|> C.char '+' <|> C.char '-' <|> C.char '<' <|> C.char '>' <|> C.char '='
+    symChar = C.char '*' <|> C.char '/' <|> C.char '+' <|> C.char '-'
+      <|> C.char '<' <|> C.char '>' <|> C.char '=' <|> C.char '!' <|> C.char '?'

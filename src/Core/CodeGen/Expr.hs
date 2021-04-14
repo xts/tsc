@@ -1,6 +1,7 @@
 module Core.CodeGen.Expr
   ( expr
   , literal
+  , varAddr
   ) where
 
 import Control.Monad.Except (throwError)
