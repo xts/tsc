@@ -62,5 +62,4 @@ void print(void* value) {
     } else {
         printf("Invalid value: %p", value);
     }
-    printf("\n");
 }

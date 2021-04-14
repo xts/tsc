@@ -12,15 +12,15 @@ import Core.CodeGen.Monad
 
 primitives :: Map Text Primitive
 primitives = fromList
-  [ ("print", print)
+  [ ("display", display)
   , ("+", add)
   , ("-", sub)
   , ("<", lessThan)
   , ("set!", set)
   ]
 
-print :: [Expr] -> CodeGen ()
-print [e] = do
+display :: [Expr] -> CodeGen ()
+display [e] = do
   expr e
   ins "pushq %rsi"      -- save heap ptr.
   ins "pushq %rdi"      -- save closure ptr.
@@ -38,7 +38,7 @@ print [e] = do
 
   ins "popq %rdi"       -- restore closure ptr.
   ins "popq %rsi"       -- restore heap ptr.
-print es = throwError $ "print expects 1 parameter, received " <> show (length es)
+display es = throwError $ "display expects 1 parameter, received " <> show (length es)
 
 add :: [Expr] -> CodeGen ()
 add [a, b] = do
