@@ -33,7 +33,10 @@ expr _  e           = pure e
 letForm :: Bindings -> [(Text, Expr)] -> [Expr] -> R Expr
 letForm bs vs es = do
   bs' <- foldrM bind bs $ map fst vs
-  vs' <- zip <$> mapM (bound bs' . fst) vs <*> mapM (expr bs . snd) vs
+  vs' <- zip <$> mapM (bound bs' . fst) vs <*> mapM (\(s, e) -> do
+                                                        s' <- bound bs' s
+                                                        expr (insertWith (<>) s [s'] bs) e) vs
+
   Let vs' <$> mapM (expr bs') es
 
 lambda :: Bindings -> [Text] -> [Expr] -> R Expr

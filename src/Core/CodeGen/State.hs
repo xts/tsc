@@ -2,6 +2,7 @@ module Core.CodeGen.State
   ( CodeGen
   , Primitive
   , State
+  , Var(..)
   , runCodeGen
   , context
   , lookupPrimitive
@@ -13,6 +14,7 @@ module Core.CodeGen.State
   , allocStackSlot
   , freeStackSlot
   , stackSlot
+  , closureSlot
   , stackSpace
   , funLabel
   ) where
@@ -31,20 +33,30 @@ data Env = Env
   , envPrimitives :: Map Text Primitive -- ^ Available primitive functions.
   }
 
+data Var
+  = Stack Int
+  | Closure Int
+
 data State = State
   { stCurStack     :: Int           -- ^ Next free stack slot.
   , stMaxStack     :: Int           -- ^ Peak stack usage.
   , stNextLabel    :: Int           -- ^ Suffix of next local code label.
-  , stVariables    :: [(Text, Int)] -- ^ Variable name -> stack index.
+  , stVariables    :: [(Text, Var)] -- ^ Variable name -> stack index.
   }
 
 type CodeGen a = RWST Env ByteString State (Except String) a
 
-runCodeGen :: Text -> Int -> Map Text Primitive -> CodeGen () -> Either String (State, ByteString)
-runCodeGen ctx preallocStack ps f = runExcept $ execRWST f env st
+runCodeGen
+  :: Text
+  -> Int
+  -> [(Text, Var)]
+  -> Map Text Primitive
+  -> CodeGen ()
+  -> Either String (State, ByteString)
+runCodeGen ctx preallocStack vs ps f = runExcept $ execRWST f env st
   where
     env = Env ctx ps
-    st  = State preallocStack preallocStack 0 []
+    st  = State preallocStack preallocStack 0 vs
 
 emit :: ByteString -> CodeGen ()
 emit = tell
@@ -55,7 +67,7 @@ context = envContext <$> ask
 lookupPrimitive :: Text -> CodeGen (Maybe Primitive)
 lookupPrimitive name = Map.lookup name . envPrimitives <$> ask
 
-addVariable :: Text -> Int -> CodeGen ()
+addVariable :: Text -> Var -> CodeGen ()
 addVariable name slot = do
   vars <- stVariables <$> get
   modify $ \st -> st { stVariables = (name, slot) : vars }
@@ -66,7 +78,7 @@ delVariable name = do
   let (before, _:after) = break ((== name) . fst) vars
   modify $ \st -> st { stVariables = before ++ after }
 
-lookupVariable :: Text -> CodeGen (Maybe Int)
+lookupVariable :: Text -> CodeGen (Maybe Var)
 lookupVariable name = fmap snd . find ((== name) . fst) . stVariables <$> get
 
 allocStackSlot :: CodeGen Int
@@ -94,6 +106,9 @@ setStack sp = do
 
 stackSlot :: Int -> ByteString
 stackSlot = fromString . show . ((-8) *)
+
+closureSlot :: Int -> ByteString
+closureSlot = fromString . show . (8 *)
 
 stackSpace :: State -> Int
 stackSpace = to16s . (8*) . stMaxStack

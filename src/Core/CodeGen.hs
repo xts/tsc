@@ -14,18 +14,19 @@ import Core.CodeGen.Primitives
 
 lower :: ([Expr], Info) -> Either String ByteString
 lower (es, info) = do
-  main       <- snd <$> function "_scheme_entry" 0 es True
+  main       <- snd <$> function "_scheme_entry" 0 [] es True
   lams       <- lambdas $ inLambdas info
-  stringData <- snd <$> gen "strings" 0 (strings $ inStrings info)
+  stringData <- snd <$> gen "strings" 0 [] (strings $ inStrings info)
   pure $ main <> lams <> stringData
 
-gen :: Text -> Int -> CodeGen () -> Either String (State, ByteString)
-gen ctx nargs = runCodeGen ctx nargs primitives
+gen :: Text -> Int -> [(Text, Var)] -> CodeGen () -> Either String (State, ByteString)
+gen ctx nargs vars = runCodeGen ctx nargs vars primitives
 
 lambdas :: [(Lambda, Label)] -> Either String ByteString
-lambdas lams = mconcat . map snd <$> fs
-  where fs = forM lams $ \(Lambda as _ e, lb) ->
-          function (unLabel lb) (length as) e False
+lambdas lams = mconcat . map snd <$> fns
+  where fns = forM lams $ \(Lambda as fs e, lb) ->
+          let vars = zip fs $ map Closure [1..]
+          in function (unLabel lb) (length as) vars e False
 
 strings :: Map Text Label -> CodeGen ()
 strings labels = do
@@ -36,11 +37,11 @@ strings labels = do
     label $ encodeUtf8 v
     dir $ "asciz \"" <> encodeUtf8 k <> "\""
 
-function :: Text -> Int -> [Expr] -> Bool -> Either String (State, ByteString)
-function ctx nargs es isMain = do
-  (st, body) <- gen ctx nargs $ mapM_ expr es
-  (_, pre)   <- gen ctx nargs $ prologue (stackSpace st) isMain
-  (_, post)  <- gen ctx nargs $ epilogue (stackSpace st) isMain
+function :: Text -> Int -> [(Text, Var)] -> [Expr] -> Bool -> Either String (State, ByteString)
+function ctx nargs vars es isMain = do
+  (st, body) <- gen ctx nargs vars $ mapM_ expr es
+  (_, pre)   <- gen ctx nargs [] $ prologue (stackSpace st) isMain
+  (_, post)  <- gen ctx nargs [] $ epilogue (stackSpace st) isMain
   pure (st, pre <> body <> post)
 
 prologue :: Int -> Bool -> CodeGen ()

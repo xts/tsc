@@ -106,3 +106,7 @@ spec = parallel $ do
     -- Renamer.
     it "compiles closures without overriding shadow bindings" $ do
       running "(print ((lambda (x) (let ((x #t)) x)) #f))" `shouldReturn` "#t"
+
+    -- Closures.
+    it "compiles closures and captures static values" $ do
+      running "(let ((f (lambda () (let ((x 42)) (lambda () x))))) (print ((f))))" `shouldReturn` "42"

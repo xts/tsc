@@ -16,15 +16,15 @@ expr (Sym s)       = var s
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
 expr (Let vs es)   = letForm vs es
-expr (Arg i)       = ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
+expr (Arg i)       = varSlot (Stack i)
 expr (Lam a f l)   = lambda a f l
 expr (If p t f)    = ifForm p t f
 expr e             = throwError $ "Unable to lower " <> show e
 
 var :: Text -> CodeGen ()
 var v = lookupVariable v >>= \case
-  Just slot -> ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
-  Nothing   -> throwError $ "no such binding " <> show v
+  Just slot -> varSlot slot
+  Nothing   -> throwError $ "No such binding " <> show v
 
 literal :: Literal -> CodeGen ()
 literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
@@ -42,15 +42,10 @@ encode l                    = error $ "Unable to encode literal " <> show l
 
 form :: Expr -> [Expr] -> CodeGen ()
 form (Sym s) es = fvar s es
-form e@(Lam _ _ _) es = do
+form e es = do
   pushArgs es
   expr e
   callClosure
-form (Arg i) es = do
-  pushArgs es
-  ins $ "movq " <> stackSlot i <> "(%rbp), %rax"
-  callClosure
-form e _  = throwError $ "don't know how to evaluate form " <> show e
 
 callClosure :: CodeGen ()
 callClosure = do
@@ -71,6 +66,10 @@ heapAllocate k = do
   ins "movq %rsi, %rax"
   ins $ "addq $" <> show k <> ", %rsi"
 
+varSlot :: Var -> CodeGen ()
+varSlot (Stack slot)   = ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
+varSlot (Closure slot) = ins $ "movq " <> closureSlot slot <> "(%rdi), %rax"
+
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
 lambda _ (FreeArgs fs) l = do
   heapAlign16
@@ -83,7 +82,7 @@ lambda _ (FreeArgs fs) l = do
   forM_ (zip [1..] fs) $ \(i, f) -> do
     lookupVariable f >>= \case
       Just slot -> do
-        ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
+        varSlot slot
         ins $ "movq %rax, " <> show (i * 8 :: Int) <> "(%rsi)"
       Nothing -> throwError $ "No such binding: " <> show f
 
@@ -141,7 +140,7 @@ letForm :: [(Text, Expr)] -> [Expr] -> CodeGen ()
 letForm vs es = do
   forM_ vs $ \(name, e) -> do
     slot <- allocStackSlot
-    addVariable name slot
+    addVariable name (Stack slot)
     expr e
     ins $ "movq %rax, " <> stackSlot slot <> "(%rbp)"
   mapM_ expr es
