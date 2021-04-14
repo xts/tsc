@@ -75,6 +75,7 @@ spec = parallel $ do
       running "(display (< 2 1))" `shouldReturn` "#f"
       running "(display (< -1 0))" `shouldReturn` "#t"
       running "(display (< -1 -2))" `shouldReturn` "#f"
+      running "(display (< 1 1))" `shouldReturn` "#f"
 
     -- Let.
     it "compiles let" $ do
@@ -100,11 +101,11 @@ spec = parallel $ do
 
     -- Fibonacci.
     it "compiles self-unaware fibonacci" $ do
-      running "(let ((fib (lambda (fib k) (if (< k 2) 1 (+ (fib fib (- k 1)) (fib fib (- k 2))))))) (display (fib fib 30)))"
+      running "(let ((fib (lambda (fib k) (if (< k 3) 1 (+ (fib fib (- k 1)) (fib fib (- k 2))))))) (display (fib fib 30)))"
         `shouldReturn` "832040"
 
     it "compiles fibonacci" $ do
-      running "(let ((fib (lambda (k) (if (< k 2) 1 (+ (fib (- k 1)) (fib (- k 2))))))) (display (fib 30)))"
+      running "(let ((fib (lambda (k) (if (< k 3) 1 (+ (fib (- k 1)) (fib (- k 2))))))) (display (fib 30)))"
         `shouldReturn` "832040"
 
     -- Renamer.

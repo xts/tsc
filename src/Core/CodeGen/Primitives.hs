@@ -63,7 +63,7 @@ lessThan [a, b] = do
   lab <- funLabel
   sub [a, b]
   literal $ Bool False
-  ins $ "jg " <> lab
+  ins $ "jge " <> lab
   literal $ Bool True
   label lab
 lessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)
