@@ -21,12 +21,22 @@ primitives = fromList
 print :: [Expr] -> CodeGen ()
 print [e] = do
   expr e
-  ins "movq %rax, %rdi" -- argument to print
-  ins "pushq %rsi"      -- save heap ptr
-  ins "subq $8, %rsp"   --   align stack to 16
+  ins "pushq %rsi"      -- save heap ptr.
+  ins" pushq %rdi"      -- save closure ptr.
+  ins "movq %rax, %rdi" -- argument to print.
+
+  ins "pushq %rbp"      -- align stack to 16 bytes.
+  ins "movq %rsp, %rbp"
+  ins "subq $8, %rsp"
+  ins "andq $0xfffffffffffffff0, %rsp"
+
   ins "callq _print"
-  ins "addq $8, %rsp"   -- restore heap ptr
-  ins "popq %rsi"
+
+  ins "movq %rbp, %rsp" -- restore stack.
+  ins "popq %rbp"
+
+  ins "popq %rdi"       -- restore closure ptr.
+  ins "popq %rsi"       -- restore heap ptr.
 print es = throwError $ "print expects 1 parameter, received " <> show (length es)
 
 add :: [Expr] -> CodeGen ()

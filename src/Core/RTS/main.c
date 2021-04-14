@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 #define PAGE_SIZE 4096
-#define HEAP_PAGES 4   /* Heap memory to allocate, in pages. */
-#define STACK_PAGES 2  /* Stack memory to allocate, in pages. */
+#define HEAP_PAGES 64  /* Heap memory to allocate, in pages. */
+#define STACK_PAGES 4  /* Stack memory to allocate, in pages. */
 
 /* The address of our page fault moat, residing between the heap and the stack. */
 void *g_moat = NULL;
@@ -31,12 +31,17 @@ void install_page_fault_handler(void (*handler)(int,siginfo_t *,void *)) {
         exit(1);
     }
 
-    /* Install SIGBUS handler to catch (macos) page traps. */
+    /* Install SIGBUS and SIGSEGV handlers to catch page faults. */
     struct sigaction action;
     action.sa_flags = SA_SIGINFO | SA_ONSTACK;
     action.sa_sigaction = handler;
 
     if (sigaction(SIGBUS, &action, NULL) == -1) {
+        perror("sigfpe: sigaction");
+        exit(1);
+    }
+
+    if (sigaction(SIGSEGV, &action, NULL) == -1) {
         perror("sigfpe: sigaction");
         exit(1);
     }
@@ -84,5 +89,5 @@ int main() {
     install_page_fault_handler(page_fault_handler);
 
     /* Start program. */
-    return scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE - 8); //
+    return scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE - 8);
 }
