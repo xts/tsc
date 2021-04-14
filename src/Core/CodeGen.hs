@@ -53,14 +53,20 @@ prologue space isMain = do
   label name
   ins "pushq %rbp"
   ins "movq %rsp, %rbp"
+  when isMain $ do
+    ins "movq %rsi, %rsp" -- Our second argument is the stack ptr.
+    ins "movq %rdi, %rsi" -- Our first argument is the heap ptr.
+    ins "pushq %rbp"      -- Save our original stack pointer.
+    ins "movq %rsp, %rbp"
   when (space > 0) $
     ins $ "subq $" <> fromString (show space) <> ", %rsp"
-  when isMain $ ins "movq %rdi, %rsi" -- Our argument is the heap ptr.
 
 epilogue :: Int -> Bool -> CodeGen ()
 epilogue space isMain = do
-  when isMain $ ins "xorq %rax, %rax" -- Return 0 to the OS.
   when (space > 0) $
     ins $ "addq $" <> fromString (show space) <> ", %rsp"
+  when isMain $ do
+    ins "popq %rsp"       -- Restore our original stack pointer.
+    ins "xorq %rax, %rax" -- Return 0 to the OS.
   ins "popq %rbp"
   ins "retq"

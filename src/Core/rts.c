@@ -1,3 +1,5 @@
+#include <sys/mman.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -66,9 +68,64 @@ void print(void* value) {
     printf("\n");
 }
 
-void scheme_entry(void *);
+int scheme_entry(void *heap, void *stack);
+
+void *align(void *ptr, int to) {
+    uintptr_t start = (uintptr_t)ptr;
+    if (start & (to - 1)) {
+        start += to - (start & (to - 1));
+    }
+    return (void *)start;
+}
+
+void install_handler(void (*handler)(int,siginfo_t *,void *)) {
+    struct sigaction action;
+    action.sa_flags = SA_SIGINFO;
+    action.sa_sigaction = handler;
+
+    if (sigaction(SIGBUS, &action, NULL) == -1) {
+        perror("sigfpe: sigaction");
+        exit(1);
+    }
+}
+
+void *g_moat;
+
+#define PAGE_SIZE 4096
+#define HEAP_PAGES 4
+#define STACK_PAGES 2
+
+void fault_handler(int signo, siginfo_t *info, void *context) {
+    (void)signo;
+    (void)context;
+
+    if (info->si_addr >= g_moat && info->si_addr < g_moat + PAGE_SIZE) {
+        fprintf(stderr, "panic: out of memory\n");
+    } else {
+        fprintf(stderr, "page fault at %p\n", info->si_addr);
+    }
+
+    exit(11);
+}
 
 int main() {
-    void *heap = malloc(1024768);
-    scheme_entry(heap);
+    /* Allocate heap and stack, with an overflow trap in between. */
+    void *mem = malloc(PAGE_SIZE * (HEAP_PAGES + STACK_PAGES + 1));
+    void *heap = align(mem, PAGE_SIZE);
+    g_moat = heap + PAGE_SIZE * HEAP_PAGES;
+    void *stack = g_moat + PAGE_SIZE;
+
+    /* Protect the space between the heap and the stack
+     * to detect OOM and stack overflow.
+     */
+    if (mprotect(g_moat, PAGE_SIZE, PROT_READ) == -1) {
+        perror("mprotect");
+        exit(1);
+    }
+
+    /* Install a page fault handler to report OOM/stack overflow. */
+    install_handler(fault_handler);
+
+    /* Start program. */
+    return scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE - 8); //
 }
