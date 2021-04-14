@@ -16,7 +16,7 @@ expr (Sym s)       = var s
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
 expr (Let vs es)   = letForm vs es
-expr (Arg i)       = varSlot (Stack i)
+expr (Arg i)       = arg i
 expr (Lam a f l)   = lambda a f l
 expr (If p t f)    = ifForm p t f
 expr e             = throwError $ "Unable to lower " <> show e
@@ -67,8 +67,17 @@ heapAllocate k = do
   ins $ "addq $" <> show k <> ", %rsi"
 
 varSlot :: Var -> CodeGen ()
-varSlot (Stack slot)   = ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
-varSlot (Closure slot) = ins $ "movq " <> closureSlot slot <> "(%rdi), %rax"
+varSlot s = varAddr s >> ins "movq (%rax), %rax"
+
+varAddr :: Var -> CodeGen ()
+varAddr (Stack slot) = ins $ "movq " <> stackSlot slot <> "(%rbp), %rax"
+varAddr (Closure slot) = do
+  ins "movq %rdi, %rax"
+  ins $ "addq $" <> closureSlot slot <> ", %rax"
+  ins "movq (%rax), %rax"
+
+arg :: Int -> CodeGen ()
+arg n = ins $ "movq " <> stackSlot n <> "(%rbp), %rax"
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
 lambda _ (FreeArgs fs) l = do
@@ -82,7 +91,7 @@ lambda _ (FreeArgs fs) l = do
   forM_ (zip [1..] fs) $ \(i, f) -> do
     lookupVariable f >>= \case
       Just slot -> do
-        varSlot slot
+        varAddr slot
         ins $ "movq %rax, " <> show (i * 8 :: Int) <> "(%rsi)"
       Nothing -> throwError $ "No such binding: " <> show f
 
@@ -139,10 +148,16 @@ ifForm p t f = do
 letForm :: [(Text, Expr)] -> [Expr] -> CodeGen ()
 letForm vs es = do
   forM_ vs $ \(name, e) -> do
+    -- Allocate a stack slot and associate it with the name.
     slot <- allocStackSlot
     addVariable name (Stack slot)
+    -- Evaluate and place the result on the heap, with a pointer in the stack slot.
+    ins "pushq %rsi"
+    ins $ "movq %rsi, " <> stackSlot slot <> "(%rbp)"
+    ins "addq $8, %rsi"
     expr e
-    ins $ "movq %rax, " <> stackSlot slot <> "(%rbp)"
+    ins "popq %rdx"
+    ins "movq %rax, (%rdx)"
   mapM_ expr es
   forM_ vs $ \(name, _) -> do
     delVariable name
