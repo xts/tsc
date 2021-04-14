@@ -1,4 +1,5 @@
 #include <sys/mman.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,9 +79,27 @@ void *align(void *ptr, int to) {
     return (void *)start;
 }
 
+#define PAGE_SIZE 4096
+#define HEAP_PAGES 4
+#define STACK_PAGES 2
+
+void *g_moat = NULL;
+
 void install_handler(void (*handler)(int,siginfo_t *,void *)) {
+    /* Set up an alternative stack for signal handlers. */
+    struct __darwin_sigaltstack altstack;
+    altstack.ss_sp = malloc(SIGSTKSZ);
+    altstack.ss_size = SIGSTKSZ;
+    altstack.ss_flags = 0;
+
+    if (sigaltstack(&altstack, 0) != 0) {
+        perror("sigaltstack");
+        exit(1);
+    }
+
+    /* Install SIGBUS handler to catch (macos) page traps. */
     struct sigaction action;
-    action.sa_flags = SA_SIGINFO;
+    action.sa_flags = SA_SIGINFO | SA_ONSTACK;
     action.sa_sigaction = handler;
 
     if (sigaction(SIGBUS, &action, NULL) == -1) {
@@ -89,19 +108,23 @@ void install_handler(void (*handler)(int,siginfo_t *,void *)) {
     }
 }
 
-void *g_moat;
-
-#define PAGE_SIZE 4096
-#define HEAP_PAGES 4
-#define STACK_PAGES 2
 
 void fault_handler(int signo, siginfo_t *info, void *context) {
     (void)signo;
     (void)context;
 
-    if (info->si_addr >= g_moat && info->si_addr < g_moat + PAGE_SIZE) {
+    /* If the page fault occurred in the lower half of our moat, it
+     * means our heap allocations (which grow upwards) failed. */
+    if (info->si_addr >= g_moat && info->si_addr < g_moat + PAGE_SIZE / 2) {
         fprintf(stderr, "panic: out of memory\n");
-    } else {
+    }
+    /* If the page fault occurred in the upper half of our moat, it
+     * means our stack allocations (which grow downwards) failed. */
+    else if (info->si_addr >= g_moat + PAGE_SIZE / 2 && info->si_addr < g_moat + PAGE_SIZE) {
+        fprintf(stderr, "panic: stack overflow\n");
+    }
+    /* Otherwise we have no idea. */
+    else {
         fprintf(stderr, "page fault at %p\n", info->si_addr);
     }
 
