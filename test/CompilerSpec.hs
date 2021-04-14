@@ -99,8 +99,12 @@ spec = parallel $ do
       running "(let ((say (lambda (x) (print x)))) (say \"hi\"))" `shouldReturn` "hi"
 
     -- Fibonacci.
-    it "compiles fibonacci" $ do
+    it "compiles self-unaware fibonacci" $ do
       running "(let ((fib (lambda (fib k) (if (< k 2) 1 (+ (fib fib (- k 1)) (fib fib (- k 2))))))) (print (fib fib 30)))"
+        `shouldReturn` "832040"
+
+    it "compiles fibonacci" $ do
+      running "(let ((fib (lambda (k) (if (< k 2) 1 (+ (fib (- k 1)) (fib (- k 2))))))) (print (fib 30)))"
         `shouldReturn` "832040"
 
     -- Renamer.

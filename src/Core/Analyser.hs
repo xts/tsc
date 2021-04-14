@@ -66,14 +66,15 @@ freeArgs :: Bindings -> [P.Expr] -> Set Text
 freeArgs bs = mconcat . map free
   where
     free (P.Sym s) | s `elem` bs = Set.singleton s
-                 | otherwise   = mempty
+                   | otherwise   = mempty
     free (P.Let vs es) =
-      let vals = freeArgs bs $ map snd vs
+      let vals = mconcat $ map (\(s, e) -> freeArgs (s : bs) [e]) vs
           body = freeArgs bs es
       in vals <> body
     free (P.Lam vs es) = freeArgs (vs <> bs) es
     free (P.List es)   = freeArgs bs es
-    free _         = mempty
+    free (P.If p t f)  = freeArgs bs [p, t, f]
+    free _             = mempty
 
 lambda :: Bindings -> [Text] -> [P.Expr] -> Analyser Expr
 lambda bs ps es = do
