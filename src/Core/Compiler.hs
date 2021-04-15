@@ -8,10 +8,11 @@ import Prelude hiding (readFile)
 
 import Core.Analyser
 import Core.CodeGen
-import Core.Parser
-import Core.Options
-import Core.Renamer
+import Core.Desugarer
 import Core.Linker
+import Core.Options
+import Core.Parser
+import Core.Renamer
 
 compile :: Options -> IO (Either String ())
 compile options = runExceptT pipeline
@@ -21,7 +22,7 @@ compile options = runExceptT pipeline
         Source text -> pure text
         File path   -> lift $ readFile path
 
-      ast    <- except $ rename =<< parse source
+      ast    <- except $ rename =<< desugar =<< parse source
       maybeEmit optEmitAst $ show ast
 
       let ast2 = analyse ast
