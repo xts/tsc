@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module AnalyserSpec (spec) where
 
 import Test.Hspec

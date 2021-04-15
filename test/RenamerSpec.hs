@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module RenamerSpec (spec) where
 
 import Test.Hspec

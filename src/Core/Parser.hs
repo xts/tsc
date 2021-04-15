@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings, ImportQualifiedPost #-}
-
 module Core.Parser
   ( parse
   , fixnumMin

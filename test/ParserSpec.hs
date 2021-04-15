@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module ParserSpec (spec) where
 
 import Test.Hspec
