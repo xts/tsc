@@ -12,6 +12,7 @@ import Core.Desugarer
 import Core.Linker
 import Core.Options
 import Core.Parser
+import Core.Prelude
 import Core.Renamer
 
 compile :: Options -> IO (Either String ())
@@ -22,7 +23,7 @@ compile options = runExceptT pipeline
         Source text -> pure text
         File path   -> lift $ readFile path
 
-      ast    <- except $ rename =<< desugar =<< parse source
+      ast <- except $ rename =<< desugar =<< parse (prelude <> source)
       maybeEmit optEmitAst $ show ast
 
       let ast2 = analyse ast
