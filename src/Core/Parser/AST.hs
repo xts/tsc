@@ -11,6 +11,8 @@ data Expr
   | Let [(Text, Expr)] [Expr]
   | Lam [Text] [Expr]
   | If Expr Expr Expr
+  | FunDef Text [Text] [Expr]
+  | VarDef Text Expr
   deriving (Eq, Show)
 
 data Literal
