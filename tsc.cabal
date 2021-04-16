@@ -33,21 +33,23 @@ library
   import:          shared
   hs-source-dirs:  src
   exposed-modules:
-    Core.Analyser,
-    Core.Analyser.AST,
+    Core.AST,
     Core.CodeGen,
     Core.CodeGen.Emitters,
     Core.CodeGen.Expr,
     Core.CodeGen.Monad,
     Core.CodeGen.Primitives,
     Core.Compiler,
-    Core.Desugarer,
+    Core.Extractor,
     Core.Linker,
     Core.Options,
     Core.Parser,
-    Core.Parser.AST,
     Core.Prelude,
-    Core.Renamer
+    Core.Transformer,
+    Core.Transformers.Desugarer,
+    Core.Transformers.FreeFinder,
+    Core.Transformers.Renamer,
+    Core.Transformers.Resolver,
   build-depends:
     bytestring    ^>= 0.11,
     containers    ^>= 0.6,

@@ -1,4 +1,4 @@
-module Core.Renamer
+module Core.Transformers.Renamer
   ( rename
   ) where
 
@@ -7,7 +7,7 @@ import Data.Foldable (foldrM)
 import Data.Map (lookup, insert, insertWith)
 import Data.Text (pack)
 
-import Core.Parser.AST
+import Core.AST
 import Core.CodeGen.Primitives
 
 data Names = Names
@@ -25,24 +25,25 @@ rename es = runExcept $ evalStateT (mapM (expr mempty) es) $ Names mempty mempty
 expr :: Bindings -> Expr -> R Expr
 expr bs (Sym s)     = Sym <$> bound bs s
 expr bs (Let vs es) = letForm bs vs es
-expr bs (Lam ps es) = lambda bs ps es
 expr bs (List es)   = List <$> mapM (expr bs) es
 expr bs (If p t f)  = If <$> expr bs p <*> expr bs t <*> expr bs f
-expr _  e           = pure e
+expr bs (LamDef ps Nothing es) = lambda bs ps es
+expr _  (LamDef _ (Just _) _)  = throwError "renaming must precede analysis"
+expr _  e = pure e
 
-letForm :: Bindings -> [(Text, Expr)] -> [Expr] -> R Expr
+letForm :: Bindings -> [Binding] -> [Expr] -> R Expr
 letForm bs vs es = do
-  bs' <- foldrM bind bs $ map fst vs
-  vs' <- zip <$> mapM (bound bs' . fst) vs <*> mapM (\(s, e) -> do
+  bs' <- foldrM bind bs $ map bName vs
+  vs' <- zipWith Binding <$> mapM (bound bs' . bName) vs <*> mapM (\(Binding s e) -> do
                                                         s' <- bound bs' s
                                                         expr (insertWith (<>) s [s'] bs) e) vs
 
   Let vs' <$> mapM (expr bs') es
 
-lambda :: Bindings -> [Text] -> [Expr] -> R Expr
-lambda bs ps es = do
+lambda :: Bindings -> Args -> [Expr] -> R Expr
+lambda bs (Args ps) es = do
   bs' <- foldrM bind bs ps
-  Lam <$> mapM (bound bs') ps <*> mapM (expr bs') es
+  LamDef <$> (Args <$> mapM (bound bs') ps) <*> pure Nothing <*> mapM (expr bs') es
 
 bound :: Bindings -> Text -> R Text
 bound bs s = case lookup s bs of

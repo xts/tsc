@@ -1,14 +1,19 @@
 module Core.CodeGen.Primitives
   ( primitives
+  , isPrimitive
   ) where
 
 import Control.Monad.Except (throwError)
+import Data.Map qualified as Map
 import Prelude hiding (print)
 
-import Core.Analyser.AST
+import Core.AST
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
 import Core.CodeGen.Monad
+
+isPrimitive :: Text -> Bool
+isPrimitive s = Map.member s primitives
 
 primitives :: Map Text Primitive
 primitives = fromList
@@ -69,12 +74,17 @@ lessThan [a, b] = do
 lessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)
 
 set :: [Expr] -> CodeGen ()
-set [Sym v, e] = lookupVariable v >>= \case
-  Just slot -> do
-    expr e
-    ins "pushq %rax"
-    varAddr slot
-    ins "popq %rdx"
-    ins "movq %rdx, (%rax)"
-  Nothing -> throwError $ "No such variable: " <> show v
+set [v, e] = do
+  expr e
+  ins "pushq %rax"
+  addr v
+  ins "popq %rdx"
+  ins "movq %rdx, (%rax)"
 set es = throwError $ "set! expects 2 arguments, received " <> show (length es)
+
+addr :: Expr -> CodeGen ()
+addr (Sym s) = lookupVariable s >>= \case
+  Just slot -> varAddr slot
+  Nothing   -> throwError $ "No such variable " <> show s
+addr (CArg n) = varAddr (Closure n)
+addr e = throwError $ "Don't know how to resolve the address of " <> show e

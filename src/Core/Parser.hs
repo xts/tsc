@@ -10,7 +10,7 @@ import Text.Megaparsec.Char qualified as C
 import Text.Megaparsec.Char.Lexer qualified as L
 import Prelude hiding (bool, some)
 
-import Core.Parser.AST
+import Core.AST
 
 type Parser = Parsec Void Text
 
@@ -41,9 +41,9 @@ form = openBrace *> body <* closeBrace
 
 -- | A definition for a function which takes arguments, or variable which does not.
 defForm :: Parser Expr
-defForm = (keyword "define" *> sym) >>= \name -> try (funDef name) <|> varDef name
+defForm = (keyword "define" *> sym) >>= \name -> try (funDef $ Name name) <|> varDef (Name name)
   where
-    funDef name = FunDef name <$> (openBrace *> many sym <* closeBrace) <*> some expr
+    funDef name = FunDef name <$> (openBrace *> (Args <$> many sym) <* closeBrace) <*> some expr
     varDef name = VarDef name <$> expr
 
 -- | If is a conditional expression with an optional else.
@@ -58,15 +58,15 @@ letForm :: Parser Expr
 letForm = Let <$> (keyword "let" *> openBrace *> many letVar <* closeBrace) <*> some expr
 
 -- | A name-expression pair without an expression defaults the expression to nil.
-letVar :: Parser (Text, Expr)
+letVar :: Parser Binding
 letVar = letNil <|> letExpr
   where
-    letNil  = (, Nil) <$> sym
-    letExpr = (,) <$> (openBrace *> sym) <*> (expr <* closeBrace)
+    letNil  = Binding <$> sym <*> pure Nil
+    letExpr = Binding <$> (openBrace *> sym) <*> (expr <* closeBrace)
 
 -- | An anonymous function takes a list of symbols and a sequence of expressions.
 lambda :: Parser Expr
-lambda = Lam <$> (keyword "lambda" *> openBrace *> many sym <* closeBrace) <*> some expr
+lambda = LamDef <$> (keyword "lambda" *> openBrace *> (Args <$> many sym) <* closeBrace) <*> pure Nothing <*> some expr
 
 -- | A symbol
 sym :: Parser Text
@@ -107,7 +107,7 @@ char = Char <$> (L.symbol sc "#\\" *> C.printChar)
 
 -- | A sequence of characters.
 string :: Parser Literal
-string = String . pack <$> lexeme (C.char '\"' *> manyTill L.charLiteral (C.char '\"'))
+string = String . Left . pack <$> lexeme (C.char '\"' *> manyTill L.charLiteral (C.char '\"'))
 
 -- | True or false.
 bool :: Parser Literal

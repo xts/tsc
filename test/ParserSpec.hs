@@ -2,12 +2,13 @@ module ParserSpec (spec) where
 
 import Test.Hspec
 
-import Core.Parser.AST
+import Core.AST
 import Core.Parser
 
 spec :: Spec
 spec = do
   describe "parse" $ do
+
     -- Nil.
     it "parses ()" $ do
       parse "()" `shouldBe` Right [Nil]
@@ -36,9 +37,9 @@ spec = do
 
     -- String.
     it "parses string" $ do
-      parse "\"\"" `shouldBe` Right [Lit $ String ""]
-      parse "\"Hello\"" `shouldBe` Right [Lit $ String "Hello"]
-      parse "\"hello, world\"" `shouldBe` Right [Lit $ String "hello, world"]
+      parse "\"\"" `shouldBe` Right [Lit $ String $ Left ""]
+      parse "\"Hello\"" `shouldBe` Right [Lit $ String $ Left "Hello"]
+      parse "\"hello, world\"" `shouldBe` Right [Lit $ String $ Left "hello, world"]
 
     -- Symbol.
     it "parses symbol" $ do
@@ -56,7 +57,7 @@ spec = do
       parse "( 1 )" `shouldBe` Right [List [Lit (Fixnum 1)]]
       parse "(1 2)" `shouldBe` Right [List [Lit (Fixnum 1), Lit (Fixnum 2)]]
       parse "(1 ())" `shouldBe` Right [List [Lit (Fixnum 1), Nil]]
-      parse "(+ \"hello\" 1)" `shouldBe` Right [List [Sym "+", Lit (String "hello"), Lit (Fixnum 1)]]
+      parse "(+ \"hello\" 1)" `shouldBe` Right [List [Sym "+", Lit (String $ Left "hello"), Lit (Fixnum 1)]]
 
     -- If.
     it "parses if" $ do
@@ -66,8 +67,8 @@ spec = do
     -- Let.
     it "parses let" $ do
       parse "(let ((x 2)) (* x x))" `shouldBe` Right
-        [Let [("x", Lit (Fixnum 2))] [List [Sym "*", Sym "x", Sym "x"]]]
-      parse "(let (x y) x y)" `shouldBe` Right [Let [("x", Nil), ("y", Nil)] [Sym "x", Sym "y"]]
+        [Let [Binding "x" (Lit $ Fixnum 2)] [List [Sym "*", Sym "x", Sym "x"]]]
+      parse "(let (x y) x y)" `shouldBe` Right [Let [Binding "x" Nil, Binding "y" Nil] [Sym "x", Sym "y"]]
       parse "(let () 1)" `shouldBe` Right [Let [] [Lit (Fixnum 1)]]
       parse "(let (x))" `shouldSatisfy` isLeft
       parse "(let)" `shouldSatisfy` isLeft
@@ -76,9 +77,9 @@ spec = do
 
     -- Lambda.
     it "parser lambda" $ do
-      parse "(lambda () ())" `shouldBe` Right [Lam [] [Nil]]
-      parse "(lambda (x) x)" `shouldBe` Right [Lam ["x"] [Sym "x"]]
-      parse "(lambda (x y) x y)" `shouldBe` Right [Lam ["x", "y"] [Sym "x", Sym "y"]]
+      parse "(lambda () ())" `shouldBe` Right [LamDef (Args []) Nothing [Nil]]
+      parse "(lambda (x) x)" `shouldBe` Right [LamDef (Args ["x"]) Nothing [Sym "x"]]
+      parse "(lambda (x y) x y)" `shouldBe` Right [LamDef (Args ["x", "y"]) Nothing [Sym "x", Sym "y"]]
       parse "(lambda ())" `shouldSatisfy` isLeft
       parse "(lambda 1 ())" `shouldSatisfy` isLeft
       parse "(lambda \"x\" ())" `shouldSatisfy` isLeft

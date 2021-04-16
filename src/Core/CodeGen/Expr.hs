@@ -7,7 +7,7 @@ module Core.CodeGen.Expr
 import Control.Monad.Except (throwError)
 import Data.Char (isAscii)
 
-import Core.Analyser.AST
+import Core.AST
 import Core.CodeGen.Emitters
 import Core.CodeGen.Monad
 
@@ -18,7 +18,9 @@ expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
 expr (Let vs es)   = letForm vs es
 expr (Arg i)       = arg i
-expr (Lam a f l)   = lambda a f l
+expr (CArg i)      = varSlot (Closure i)
+expr (Prim _)      = throwError "Primitives are not first class objects"
+expr (LamDec a f l)= lambda a f l
 expr (If p t f)    = ifForm p t f
 expr e             = throwError $ "Unable to lower " <> show e
 
@@ -32,9 +34,10 @@ literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
 literal (Bool True)  = ins "movq $0x2f, %rax"
 literal (Bool False) = ins "movq $0x6f, %rax"
 literal c@(Char _)   = ins $ "movq $" <> encode c <> ", %rax"
-literal (String l) = do
+literal (String (Right l)) = do
   ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
   ins "orq $3, %rax"
+literal (String (Left _)) = throwError "String should have been labelized"
 
 encode :: Literal -> ByteString
 encode (Fixnum n)           = fromString $ show $ n * 4
@@ -42,7 +45,13 @@ encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
 form :: Expr -> [Expr] -> CodeGen ()
-form (Sym s) es = fvar s es
+form (Prim s) es = lookupPrimitive s >>= \case
+  Just prim -> prim es
+  Nothing   -> throwError $ "internal error, no such primitive " <> show s
+form (Sym s) es = do
+  pushArgs es
+  var s
+  callClosure
 form e es = do
   pushArgs es
   expr e
@@ -80,8 +89,8 @@ varAddr (Closure slot) = do
 arg :: Int -> CodeGen ()
 arg n = ins $ "movq " <> stackSlot n <> "(%rbp), %rax"
 
-lambda :: Args -> FreeArgs -> Label -> CodeGen ()
-lambda _ (FreeArgs fs) l = do
+lambda :: Args -> Args -> Label -> CodeGen ()
+lambda _ (Args fs) l = do
   heapAlign16
 
   -- Store lambda address at word 0.
@@ -99,14 +108,6 @@ lambda _ (FreeArgs fs) l = do
   -- Tag the address as a closure.
   heapAllocate $ (1 + length fs) * 8
   ins "orq $6, %rax"
-
-fvar :: Text -> [Expr] -> CodeGen ()
-fvar s es = lookupPrimitive s >>= \case
-  Just prim -> prim es
-  Nothing   -> do
-    pushArgs es
-    var s
-    callClosure
 
 -- The callee expects its arguments starting in stack slot 3. This is
 -- because slot 1 is the return address and slot 2 is the rbp save.
@@ -146,9 +147,9 @@ ifForm p t f = do
   expr f
   label labEnd
 
-letForm :: [(Text, Expr)] -> [Expr] -> CodeGen ()
+letForm :: [Binding] -> [Expr] -> CodeGen ()
 letForm vs es = do
-  forM_ vs $ \(name, e) -> do
+  forM_ vs $ \(Binding name e) -> do
     -- Allocate a stack slot and associate it with the name.
     slot <- allocStackSlot
     addVariable name (Stack slot)
@@ -160,6 +161,6 @@ letForm vs es = do
     ins "popq %rdx"
     ins "movq %rax, (%rdx)"
   mapM_ expr es
-  forM_ vs $ \(name, _) -> do
+  forM_ vs $ \(Binding name _) -> do
     delVariable name
     freeStackSlot
