@@ -6,10 +6,12 @@ if [[ "$1" = "-q" ]]; then
    shift
 fi
 
-if [[ "$1" = "" ]]; then
+SOURCE=$1
+if [[ "$SOURCE" = "" ]]; then
    echo "usage: $0 [-q] '(code goes here)'"
    exit 1
 fi
+shift
 
 FILE=`mktemp`
-echo $1 > $FILE && cabal $QUIET run tsc -- $FILE && ./a.out
+echo $SOURCE > $FILE && cabal $QUIET run tsc -- $FILE "$@" && ./a.out
