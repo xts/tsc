@@ -1,20 +1,27 @@
 module Core.Extractor
-  ( extractLambdas
+  ( Function(..)
+  , extractLambdas
   , extractStrings
   ) where
 
 import Core.AST
 import Data.Map qualified as Map
 
-extractLambdas :: [Expr] -> ([Expr], [(Label, Int, [Expr])])
+data Function = Function
+  { funLabel :: Label
+  , funArgs :: Args
+  , funBody :: [Expr]
+  } deriving (Eq, Show)
+
+extractLambdas :: [Expr] -> ([Expr], [Function])
 extractLambdas es = runState (traverseAst go es) []
   where
-    go :: Expr -> State [(Label, Int, [Expr])] Expr
-    go (LamDef (Args as) (Just (Args fs)) es') = do
+    go :: Expr -> State [Function] Expr
+    go (LamDef as (Just fs) es') = do
       labels <- get
       let lab = Label $ "_lambda_" <> show (length labels)
-      modify ((lab, length as, es'):)
-      pure $ LamDec (Args as) (Args fs) lab
+      modify (Function lab as es' :)
+      pure $ LamDec as fs lab
     go e = pure e
 
 extractStrings :: [Expr] -> ([Expr], Map Text Label)

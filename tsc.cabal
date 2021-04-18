@@ -40,6 +40,7 @@ library
     Core.CodeGen.Monad,
     Core.CodeGen.Primitives,
     Core.Compiler,
+    Core.Decomposer,
     Core.Extractor,
     Core.Linker,
     Core.Options,
