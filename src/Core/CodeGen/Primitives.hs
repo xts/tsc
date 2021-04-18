@@ -56,8 +56,8 @@ add es = throwError $ "+ expects 2 parameters, received " <> show (length es)
 
 sub :: [Expr] -> CodeGen ()
 sub [a, b] = do
-  expr b
   withStackSlot $ \slot -> do
+    expr b
     ins $ "movq %rax, " <> slot <> "(%rbp)"
     expr a
     ins $ "subq " <> slot <> "(%rbp), %rax"
@@ -66,11 +66,15 @@ sub es = throwError $ "- expects 2 parameters, received " <> show (length es)
 lessThan :: [Expr] -> CodeGen ()
 lessThan [a, b] = do
   lab <- funLabel
-  sub [a, b]
-  literal $ Bool False
-  ins $ "jge " <> lab
-  literal $ Bool True
-  label lab
+  withStackSlot $ \slot -> do
+    expr b
+    ins $ "movq %rax, " <> slot <> "(%rbp)"
+    expr a
+    ins $ "subq " <> slot <> "(%rbp), %rax"
+    literal $ Bool False
+    ins $ "jge " <> lab
+    literal $ Bool True
+    label lab
 lessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)
 
 set :: [Expr] -> CodeGen ()
