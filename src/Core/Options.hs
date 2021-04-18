@@ -15,7 +15,8 @@ data Options = Options
   , optEmitAst  :: Bool
   , optEmitAst2 :: Bool
   , optEmitAsm  :: Bool
+  , optNoPrelude :: Bool
   } deriving (Show)
 
 defOptions :: Options
-defOptions = Options (Source "") "a.out" False False False
+defOptions = Options (Source "") "a.out" False False False False

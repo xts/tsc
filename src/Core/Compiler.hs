@@ -21,7 +21,9 @@ compile options = runExceptT pipeline
         Source text -> pure text
         File path   -> lift $ readFile path
 
-      ast <- except $ parse (prelude <> source)
+      ast <- except $ parse $ if optNoPrelude options
+        then source
+        else prelude <> source
       maybeEmit optEmitAst $ show ast
 
       ast' <- except $ transform ast
