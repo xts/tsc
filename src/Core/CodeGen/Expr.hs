@@ -142,18 +142,21 @@ ifForm p t f = do
 
 letForm :: [Binding] -> [Expr] -> CodeGen ()
 letForm vs es = do
+  ins $ "subq $" <> show (8 * length vs) <> ", %rsp"
   forM_ vs $ \(Binding name e) -> do
     -- Allocate a stack slot and associate it with the name.
     slot <- allocStackSlot
     addVariable name (Stack slot)
     -- Evaluate and place the result on the heap, with a pointer in the stack slot.
-    ins "pushq %rsi"
+    ins "pushq %rsi" <* allocStackSlot
+    _ <- allocStackSlot
     ins $ "movq %rsi, " <> stackSlot slot <> "(%rbp)"
     ins "addq $8, %rsi"
     expr e
-    ins "popq %rdx"
+    ins "popq %rdx" <* freeStackSlot
     ins "movq %rax, (%rdx)"
   mapM_ expr es
   forM_ vs $ \(Binding name _) -> do
     delVariable name
     freeStackSlot
+  ins $ "addq $" <> show (8 * length vs) <> ", %rsp"

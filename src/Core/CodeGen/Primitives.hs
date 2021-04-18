@@ -48,41 +48,41 @@ display es = throwError $ "display expects 1 parameter, received " <> show (leng
 add :: [Expr] -> CodeGen ()
 add [a, b] = do
   expr b
-  ins "pushq %rax"
+  ins "pushq %rax" <* allocStackSlot
   expr a
   ins "addq (%rsp), %rax"
-  ins "addq $8, %rsp"
+  ins "addq $8, %rsp" <* freeStackSlot
 add es = throwError $ "+ expects 2 parameters, received " <> show (length es)
 
 sub :: [Expr] -> CodeGen ()
 sub [a, b] = do
   expr b
-  ins "pushq %rax"
+  ins "pushq %rax" <* allocStackSlot
   expr a
   ins "subq (%rsp), %rax"
-  ins "addq $8, %rsp"
+  ins "addq $8, %rsp" <* freeStackSlot
 sub es = throwError $ "- expects 2 parameters, received " <> show (length es)
 
 lessThan :: [Expr] -> CodeGen ()
 lessThan [a, b] = do
   lab <- funLabel
   expr b
-  ins "pushq %rax"
+  ins "pushq %rax" <* allocStackSlot
   expr a
   ins "cmpq (%rsp), %rax"
   literal $ Bool False
   ins $ "jge " <> lab
   literal $ Bool True
   label lab
-  ins "addq $8, %rsp"
+  ins "addq $8, %rsp" <* freeStackSlot
 lessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)
 
 set :: [Expr] -> CodeGen ()
 set [v, e] = do
   expr e
-  ins "pushq %rax"
+  ins "pushq %rax" <* allocStackSlot
   addr v
-  ins "popq %rdx"
+  ins "popq %rdx"  <* freeStackSlot
   ins "movq %rdx, (%rax)"
 set es = throwError $ "set! expects 2 arguments, received " <> show (length es)
 
