@@ -13,6 +13,7 @@ options = Options
   <*> switch (long "emit-ast" <> help "Print parser AST and exit")
   <*> switch (long "emit-ast2" <> help "Print analyser AST and exit")
   <*> switch (long "emit-asm" <> help "Print assembly and exit")
+  <*> switch (long "no-prelude" <> help "Do not inject prelude")
 
 parseOptions :: IO Options
 parseOptions = execParser $ info (options <**> helper)
