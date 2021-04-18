@@ -26,8 +26,9 @@ resolve rs (Let vs es) =
   in Let vs' es'
 
 resolve rs (LamDef (Args as) (Just (Args fs)) es) =
-  let as' = zipWith (\a n -> (a, Arg n)) as [1..]
-      fs' = zipWith (\f n -> (f, CArg n)) fs [1..]
+  let enumWith c xs = zipWith (\x n -> (x, c n)) xs [1..]
+      as' = enumWith Arg as
+      fs' = enumWith CArg fs
   in LamDef (Args as) (Just $ Args fs) $ map (resolve $ as' <> fs' <> rs) es
 
 resolve rs (List es)  = List $ map (resolve rs) es
