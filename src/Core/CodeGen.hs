@@ -19,16 +19,10 @@ lower (Image funs strs) = do
 
 function :: Function -> Either String ByteString
 function (Function (Label ctx) (Args as) es) = do
-  (st, body) <- gen ctx (length as) $ mapM_ expr es
-  (_, pre)   <- gen ctx (length as) $ prologue (stackSpace st)
-  (_, post)  <- gen ctx (length as) $ epilogue (stackSpace st)
+  (space, body) <- gen ctx (length as) $ mapM_ expr es
+  (_,     pre)  <- gen ctx (length as) $ prologue space
+  (_,     post) <- gen ctx (length as) $ epilogue space
   pure $ pre <> body <> post
-
-gen :: Text -> Int -> CodeGen () -> Either String (Alloc, ByteString)
-gen ctx nargs = runCodeGen ctx nargs primitives
-
-gen' :: Text -> Int -> CodeGen () -> Either String ByteString
-gen' ctx nargs f = snd <$> gen ctx nargs f
 
 string :: Text -> Label -> Either String ByteString
 string s (Label l) = gen' l 0 $ do
@@ -67,3 +61,9 @@ entryFunction = do
   ins "popq %rsp"       -- Restore our original stack pointer.
   ins "xorq %rax, %rax" -- Return 0 to the OS.
   epilogue 0
+
+gen :: Text -> Int -> CodeGen () -> Either String (Int, ByteString)
+gen ctx nargs = runCodeGen ctx nargs primitives
+
+gen' :: Text -> Int -> CodeGen () -> Either String ByteString
+gen' ctx nargs f = snd <$> gen ctx nargs f

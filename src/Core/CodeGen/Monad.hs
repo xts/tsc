@@ -1,7 +1,6 @@
 module Core.CodeGen.Monad
   ( CodeGen
   , Primitive
-  , Alloc
   , Var(..)
   , runCodeGen
   , context
@@ -51,8 +50,9 @@ runCodeGen
   -> Int
   -> Map Text Primitive
   -> CodeGen ()
-  -> Either String (Alloc, ByteString)
-runCodeGen ctx preallocStack ps f = runExcept $ execRWST f env st
+  -> Either String (Int, ByteString)
+runCodeGen ctx preallocStack ps f =
+  runExcept $ first stackSpace <$> execRWST f env st
   where
     env = Env ctx ps
     st  = Alloc preallocStack preallocStack 0 []
