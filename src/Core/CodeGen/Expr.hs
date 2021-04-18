@@ -48,10 +48,6 @@ form :: Expr -> [Expr] -> CodeGen ()
 form (Prim s) es = lookupPrimitive s >>= \case
   Just prim -> prim es
   Nothing   -> throwError $ "internal error, no such primitive " <> show s
-form (Sym s) es = do
-  pushArgs es
-  var s
-  callClosure
 form e es = do
   pushArgs es
   expr e
