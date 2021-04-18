@@ -15,7 +15,7 @@ expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"
 expr (Sym s)       = var s
 expr (Lit lit)     = literal lit
-expr (List (x:xs)) = form x xs
+expr (List (x:xs)) = apply x xs
 expr (Let vs es)   = letForm vs es
 expr (Arg i)       = arg i
 expr (CArg i)      = varSlot (Closure i)
@@ -44,19 +44,23 @@ encode (Fixnum n)           = fromString $ show $ n * 4
 encode (Char c) | isAscii c = fromString $ show (ord c * 256 + 15)
 encode l                    = error $ "Unable to encode literal " <> show l
 
-form :: Expr -> [Expr] -> CodeGen ()
-form (Prim s) es = lookupPrimitive s >>= \case
+apply :: Expr -> [Expr] -> CodeGen ()
+apply (Prim s) es = lookupPrimitive s >>= \case
   Just prim -> prim es
   Nothing   -> throwError $ "internal error, no such primitive " <> show s
-form e es = do
-  pushArgs es
+apply e es = do
+  -- Stack slot 1 is for the return address, stack slot 2 will be used by
+  -- the callee to save rbp; callee expects argumetns in slots 3 onwards.
+  ins "subq $16, %rsp"
+  forM_ es $ \e' -> expr e' >> ins "pushq %rax"
+  -- Evaluate closure.
   expr e
-  callClosure
-
-callClosure :: CodeGen ()
-callClosure = do
+  -- Restore stack.
+  ins $ "addq $" <> show (8 * (2 + length es)) <> ", %rsp"
+  -- Remove closure tag and place closure where callee expects in %edx.
   ins "subq $6, %rax"
   ins "movq %rax, %rdi"
+  -- Dereference function pointer and call.
   ins "movq (%rax), %rax"
   ins "callq *%rax"
 
@@ -104,13 +108,6 @@ lambda _ (Args fs) l = do
   -- Tag the address as a closure.
   heapAllocate $ (1 + length fs) * 8
   ins "orq $6, %rax"
-
--- The callee expects its arguments starting in stack slot 3. This is
--- because slot 1 is the return address and slot 2 is the rbp save.
-pushArgs :: [Expr] -> CodeGen ()
-pushArgs es = forM_ (zip es [3..]) $ \(e, i) -> do
-    expr e
-    ins $ "movq %rax, " <> stackSlot i <> "(%rsp)"
 
 _cons :: Text -> Text -> CodeGen ()
 _cons a d = do
