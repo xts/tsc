@@ -91,4 +91,5 @@ addr (Sym s) = lookupVariable s >>= \case
   Just slot -> varAddr slot
   Nothing   -> throwError $ "No such variable " <> show s
 addr (CArg n) = varAddr (Closure n)
+addr (Var n)  = varAddr (Stack n)
 addr e = throwError $ "Don't know how to resolve the address of " <> show e

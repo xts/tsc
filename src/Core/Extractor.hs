@@ -4,8 +4,9 @@ module Core.Extractor
   , extractStrings
   ) where
 
-import Core.AST
 import Data.Map qualified as Map
+
+import Core.AST
 
 data Function = Function
   { funLabel :: Label
@@ -17,7 +18,7 @@ extractLambdas :: [Expr] -> ([Expr], [Function])
 extractLambdas es = runState (traverseAst go es) []
   where
     go :: Expr -> State [Function] Expr
-    go (LamDef as (Just fs) es') = do
+    go (LamDef as fs es') = do
       labels <- get
       let lab = Label $ "_lambda_" <> show (length labels)
       modify (Function lab as es' :)

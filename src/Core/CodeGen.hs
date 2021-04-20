@@ -17,11 +17,19 @@ lower (Image funs strs) = do
   entry   <- gen' "_scheme_entry" 0 entryFunction
   pure $ other <> lambdas <> entry
 
+spaceReq :: Function -> Int
+spaceReq (Function _ (Args as) es) = length as + execState (traverseAst go es) 0
+  where
+    go :: Expr -> State Int Expr
+    go e@(Let vs _) = (forM_ vs $ \(Binding (Place i) _) -> modify (`max` i)) $> e
+    go e = pure e
+
 function :: Function -> Either String ByteString
-function (Function (Label ctx) (Args as) es) = do
-  (space, body) <- gen ctx (length as) $ mapM_ expr es
-  (_,     pre)  <- gen ctx (length as) $ prologue space
-  (_,     post) <- gen ctx (length as) $ epilogue space
+function f@(Function (Label ctx) _ es) = do
+  let sr = spaceReq f
+  (space, body) <- gen ctx (spaceReq f) $ mapM_ expr es
+  (_,     pre)  <- gen ctx 0 $ prologue (space + sr * 8)
+  (_,     post) <- gen ctx 0 $ epilogue (space + sr * 8)
   pure $ pre <> body <> post
 
 string :: Text -> Label -> Either String ByteString

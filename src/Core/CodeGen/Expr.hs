@@ -13,21 +13,17 @@ import Core.CodeGen.Monad
 
 expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"
-expr (Sym s)       = var s
+expr (Sym s)       = throwError $ "Run resolver pass to resolve " <> show s
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = form x xs
 expr (Let vs es)   = letForm vs es
 expr (Arg i)       = arg i
+expr (Var i)       = varSlot (Stack i)
 expr (CArg i)      = varSlot (Closure i)
 expr (Prim _)      = throwError "Primitives are not first class objects"
 expr (LamDec a f l)= lambda a f l
 expr (If p t f)    = ifForm p t f
 expr e             = throwError $ "Unable to lower " <> show e
-
-var :: Text -> CodeGen ()
-var v = lookupVariable v >>= \case
-  Just slot -> varSlot slot
-  Nothing   -> throwError $ "No such binding " <> show v
 
 literal :: Literal -> CodeGen ()
 literal n@(Fixnum _) = ins $ "movq $" <> encode n <> ", %rax"
@@ -85,8 +81,8 @@ varAddr (Closure slot) = do
 arg :: Int -> CodeGen ()
 arg n = ins $ "movq " <> stackSlot n <> "(%rbp), %rax"
 
-lambda :: Args -> Args -> Label -> CodeGen ()
-lambda _ (Args fs) l = do
+lambda :: Args -> FreeArgs -> Label -> CodeGen ()
+lambda _ (FreeArgs fs) l = do
   heapAlign16
 
   -- Store lambda address at word 0.
@@ -94,12 +90,9 @@ lambda _ (Args fs) l = do
   ins "movq %rax, 0(%rsi)"
 
   -- Store values of free variables in subsequent words.
-  forM_ (zip [1..] fs) $ \(i, f) -> do
-    lookupVariable f >>= \case
-      Just slot -> do
-        varAddr slot
-        ins $ "movq %rax, " <> show (i * 8 :: Int) <> "(%rsi)"
-      Nothing -> throwError $ "No such binding: " <> show f
+  forM_ (zip [1..] fs) $ \(i, Place j) -> do
+    varAddr (Stack j)
+    ins $ "movq %rax, " <> show (i * 8 :: Int) <> "(%rsi)"
 
   -- Tag the address as a closure.
   heapAllocate $ (1 + length fs) * 8
@@ -145,18 +138,14 @@ ifForm p t f = do
 
 letForm :: [Binding] -> [Expr] -> CodeGen ()
 letForm vs es = do
-  forM_ vs $ \(Binding name e) -> do
-    -- Allocate a stack slot and associate it with the name.
-    slot <- allocStackSlot
-    addVariable name (Stack slot)
-    -- Evaluate and place the result on the heap, with a pointer in the stack slot.
-    ins "pushq %rsi"
-    ins $ "movq %rsi, " <> stackSlot slot <> "(%rbp)"
-    ins "addq $8, %rsi"
-    expr e
-    ins "popq %rdx"
-    ins "movq %rax, (%rdx)"
+  mapM_ letBind vs
   mapM_ expr es
-  forM_ vs $ \(Binding name _) -> do
-    delVariable name
-    freeStackSlot
+  where
+    letBind (Binding (Place i) e) = do
+      ins "pushq %rsi"
+      ins $ "movq %rsi, " <> stackSlot i <> "(%rbp)"
+      ins "addq $8, %rsi"
+      expr e
+      ins "popq %rdx"
+      ins "movq %rax, (%rdx)"
+    letBind _ = throwError "Run resolver pass to allocate stack space"

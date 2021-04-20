@@ -27,23 +27,27 @@ expr bs (Sym s)     = Sym <$> bound bs s
 expr bs (Let vs es) = letForm bs vs es
 expr bs (List es)   = List <$> mapM (expr bs) es
 expr bs (If p t f)  = If <$> expr bs p <*> expr bs t <*> expr bs f
-expr bs (LamDef ps Nothing es) = lambda bs ps es
-expr _  (LamDef _ (Just _) _)  = throwError "renaming must precede analysis"
+expr bs (LamDef ps _ es) = lambda bs ps es
 expr _  e = pure e
 
 letForm :: Bindings -> [Binding] -> [Expr] -> R Expr
 letForm bs vs es = do
-  bs' <- foldrM bind bs $ map bName vs
-  vs' <- zipWith Binding <$> mapM (bound bs' . bName) vs <*> mapM (\(Binding s e) -> do
-                                                        s' <- bound bs' s
-                                                        expr (insertWith (<>) s [s'] bs) e) vs
-
+  bs' <- foldrM bind bs $ map name vs
+  vs' <- mapM (rebind bs') vs
   Let vs' <$> mapM (expr bs') es
+  where
+    rebind bs' (Binding (Name s) e) = do
+      s' <- bound bs' s
+      Binding (Name s') <$> expr (insertWith (<>) s [s'] bs') e
+    rebind _ _ = error "Binding has no name; rename before resolving"
+
+    name (Binding (Name s) _ ) = s
+    name _  = error "Binding has no name; rename before resolving"
 
 lambda :: Bindings -> Args -> [Expr] -> R Expr
 lambda bs (Args ps) es = do
   bs' <- foldrM bind bs ps
-  LamDef <$> (Args <$> mapM (bound bs') ps) <*> pure Nothing <*> mapM (expr bs') es
+  LamDef <$> (Args <$> mapM (bound bs') ps) <*> pure (FreeArgs []) <*> mapM (expr bs') es
 
 bound :: Bindings -> Text -> R Text
 bound bs s = case lookup s bs of

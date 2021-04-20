@@ -41,7 +41,7 @@ form = openBrace *> body <* closeBrace
 
 -- | A definition for a function which takes arguments, or variable which does not.
 defForm :: Parser Expr
-defForm = (keyword "define" *> sym) >>= \name -> try (funDef $ Name name) <|> varDef (Name name)
+defForm = (keyword "define" *> sym) >>= \name -> try (funDef name) <|> varDef name
   where
     funDef name = FunDef name <$> (openBrace *> (Args <$> many sym) <* closeBrace) <*> some expr
     varDef name = VarDef name <$> expr
@@ -61,12 +61,12 @@ letForm = Let <$> (keyword "let" *> openBrace *> many letVar <* closeBrace) <*> 
 letVar :: Parser Binding
 letVar = letNil <|> letExpr
   where
-    letNil  = Binding <$> sym <*> pure Nil
-    letExpr = Binding <$> (openBrace *> sym) <*> (expr <* closeBrace)
+    letNil  = Binding <$> (Name <$> sym) <*> pure Nil
+    letExpr = Binding <$> (openBrace *> (Name <$> sym)) <*> (expr <* closeBrace)
 
 -- | An anonymous function takes a list of symbols and a sequence of expressions.
 lambda :: Parser Expr
-lambda = LamDef <$> (keyword "lambda" *> openBrace *> (Args <$> many sym) <* closeBrace) <*> pure Nothing <*> some expr
+lambda = LamDef <$> (keyword "lambda" *> openBrace *> (Args <$> many sym) <* closeBrace) <*> pure (FreeArgs []) <*> some expr
 
 -- | A symbol
 sym :: Parser Text
