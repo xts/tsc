@@ -73,7 +73,7 @@ int scheme_entry(void *heap, void *stack);
 
 int main() {
     /* Allocate heap and stack, with an overflow trap in between. */
-    void *mem = malloc(PAGE_SIZE * (HEAP_PAGES + STACK_PAGES + 1));
+    void *mem = malloc(PAGE_SIZE * (HEAP_PAGES + STACK_PAGES + 2));
     void *heap = align(mem, PAGE_SIZE);
     g_moat = heap + PAGE_SIZE * HEAP_PAGES;
     void *stack = g_moat + PAGE_SIZE;
