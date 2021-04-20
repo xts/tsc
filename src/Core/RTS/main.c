@@ -89,5 +89,5 @@ int main() {
     install_page_fault_handler(page_fault_handler);
 
     /* Start program. */
-    return scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE - 8);
+    return scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE);
 }
