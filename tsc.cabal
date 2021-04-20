@@ -26,7 +26,7 @@ common shared
     relude (Relude as Prelude),
     relude
   build-depends:
-    base          ^>= 4.14,
+    base          ^>= 4.15,
     relude        ^>= 1.0,
 
 library
@@ -72,7 +72,7 @@ executable tsc
   other-modules:    Options
   default-language: Haskell2010
   build-depends:
-    base                 ^>= 4.14,
+    base                 ^>= 4.15,
     bytestring           ^>= 0.11,
     optparse-applicative ^>= 0.16,
     text                 ^>= 1.2,
@@ -87,7 +87,7 @@ test-suite spec
   type:               exitcode-stdio-1.0
   main-is:            Spec.hs
   build-depends:
-    base          ^>= 4.14,
+    base          ^>= 4.15,
     bytestring    ^>= 0.11,
     hspec         ^>= 2.7,
     temporary     ^>= 1.3,
