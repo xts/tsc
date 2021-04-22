@@ -42,6 +42,7 @@ library
     Core.Compiler,
     Core.Decomposer,
     Core.Extractor,
+    Core.IR,
     Core.Linker,
     Core.Options,
     Core.Parser,

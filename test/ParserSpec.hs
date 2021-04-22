@@ -67,8 +67,8 @@ spec = do
     -- Let.
     it "parses let" $ do
       parse "(let ((x 2)) (* x x))" `shouldBe` Right
-        [Let [Binding (Name "x") (Lit $ Fixnum 2)] [List [Sym "*", Sym "x", Sym "x"]]]
-      parse "(let (x y) x y)" `shouldBe` Right [Let [Binding (Name "x") Nil, Binding (Name "y") Nil] [Sym "x", Sym "y"]]
+        [Let [Binding "x" (Lit $ Fixnum 2)] [List [Sym "*", Sym "x", Sym "x"]]]
+      parse "(let (x y) x y)" `shouldBe` Right [Let [Binding "x" Nil, Binding "y" Nil] [Sym "x", Sym "y"]]
       parse "(let () 1)" `shouldBe` Right [Let [] [Lit (Fixnum 1)]]
       parse "(let (x))" `shouldSatisfy` isLeft
       parse "(let)" `shouldSatisfy` isLeft

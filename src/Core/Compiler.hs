@@ -30,11 +30,11 @@ compile options = runExceptT pipeline
       maybeEmit optEmitAst $ show ast
 
       -- Transform it into a simpler form.
-      ast' <- except $ transform ast
-      maybeEmit optEmitAst2 $ show ast'
+      ir <- except $ transform ast
+      maybeEmit optEmitIr $ show ir
 
       -- Decompose it into a series of functions and associated data.
-      image <- except $ decompose ast'
+      image <- except $ decompose ir
 
       -- Generate assembly.
       asm <- except $ lower image

@@ -15,7 +15,7 @@ findFree = Right . runIdentity . traverseAst go
     go e                       = pure e
 
 freeArgs :: Env -> [Expr] -> FreeArgs
-freeArgs bns exs = FreeArgs $ map Name $ Set.toList $ execState (mapM (go bns) exs) mempty
+freeArgs bns exs = FreeArgs $ Set.toList $ execState (mapM (go bns) exs) mempty
   where
     go :: Env -> Expr -> State (Set Text) Expr
     -- Capture free valiables.
@@ -23,20 +23,16 @@ freeArgs bns exs = FreeArgs $ map Name $ Set.toList $ execState (mapM (go bns) e
 
     -- Capture free variables from a deeper lambda that are also free in our context.
     go bs e@(LamDef _ (FreeArgs fs) _) =
-      modify (Set.fromList (filter (isFree bs) (map name fs)) <>) $> e
+      modify (Set.fromList (filter (isFree bs) fs) <>) $> e
 
     -- Recurse.
     go bs (If p t f)  = If <$> go bs p <*> go bs t <*> go bs f
     go bs (List es)   = List <$> mapM (go bs) es
     go bs (Let vs es) = do
-      vs' <- mapM (\(Binding i@(Name s) e) -> Binding i <$> go (s:bs) e) vs
-      es' <- mapM (go (map bindName vs' <> bs)) es
+      vs' <- mapM (\(Binding s e) -> Binding s <$> go (s:bs) e) vs
+      es' <- mapM (go (map bName vs' <> bs)) es
       pure $ Let vs' es'
     go _  e           = pure e
 
     -- A symbol is free if it is neither in our context nor a primitive.
     isFree bs s = not $ s `elem` bs || isPrimitive s
-
-    bindName (Binding n _) = name n
-    name (Name s)          = s
-    name _                 = error "Id has no name; find free before resolving"

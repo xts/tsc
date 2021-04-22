@@ -6,7 +6,7 @@ module Core.Extractor
 
 import Data.Map qualified as Map
 
-import Core.AST
+import Core.IR
 
 data Function = Function
   { funLabel :: Label
@@ -15,7 +15,7 @@ data Function = Function
   } deriving (Eq, Show)
 
 extractLambdas :: [Expr] -> ([Expr], [Function])
-extractLambdas es = runState (traverseAst go es) []
+extractLambdas es = runState (traverseIr go es) []
   where
     go :: Expr -> State [Function] Expr
     go (LamDef as fs es') = do
@@ -26,7 +26,7 @@ extractLambdas es = runState (traverseAst go es) []
     go e = pure e
 
 extractStrings :: [Expr] -> ([Expr], Map Text Label)
-extractStrings es = runState (traverseAst go es) mempty
+extractStrings es = runState (traverseIr go es) mempty
   where
     go :: Expr -> State (Map Text Label) Expr
     go (Lit (String (Left s))) = Lit . String . Right <$> label s

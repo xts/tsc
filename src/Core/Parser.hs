@@ -61,8 +61,8 @@ letForm = Let <$> (keyword "let" *> openBrace *> many letVar <* closeBrace) <*> 
 letVar :: Parser Binding
 letVar = letNil <|> letExpr
   where
-    letNil  = Binding <$> (Name <$> sym) <*> pure Nil
-    letExpr = Binding <$> (openBrace *> (Name <$> sym)) <*> (expr <* closeBrace)
+    letNil  = Binding <$> sym <*> pure Nil
+    letExpr = Binding <$> (openBrace *> sym) <*> (expr <* closeBrace)
 
 -- | An anonymous function takes a list of symbols and a sequence of expressions.
 lambda :: Parser Expr

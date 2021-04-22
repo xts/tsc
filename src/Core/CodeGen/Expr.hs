@@ -5,13 +5,12 @@ module Core.CodeGen.Expr
 
 import Control.Monad.Except (throwError)
 
-import Core.AST
+import Core.IR
 import Core.CodeGen.Emitters
 import Core.CodeGen.Monad
 
 expr :: Expr -> CodeGen ()
 expr Nil           = nil
-expr (Sym s)       = throwError $ "Run resolver pass to resolve " <> show s
 expr (Lit lit)     = literal lit
 expr (List (x:xs)) = apply x xs
 expr (Let vs es)   = letForm vs es
@@ -48,7 +47,7 @@ lambda _ (FreeArgs fs) lab = withSavedContext $ do
   labelAddr lab
   store (Closure 0)
 
-  forM_ (zip [1..] fs) $ \(i, Place j) -> do
+  forM_ (zip [1..] fs) $ \(i, j) -> do
     load (Stack j)
     store (Closure i)
 
@@ -91,11 +90,10 @@ letForm vs es = do
   mapM_ letBind vs
   mapM_ expr es
   where
-    letBind (Binding (Place i) e) = do
+    letBind (Binding i e) = do
       alloc Align8 1
       ins "pushq %rax"
       store (Stack i)
       expr e
       ins "popq %rdx"
       ins "movq %rax, (%rdx)"
-    letBind _ = throwError "Run resolver pass to allocate stack space"

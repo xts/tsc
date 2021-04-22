@@ -32,17 +32,13 @@ expr _  e = pure e
 
 letForm :: Bindings -> [Binding] -> [Expr] -> R Expr
 letForm bs vs es = do
-  bs' <- foldrM bind bs $ map name vs
+  bs' <- foldrM bind bs $ map bName vs
   vs' <- mapM (rebind bs') vs
   Let vs' <$> mapM (expr bs') es
   where
-    rebind bs' (Binding (Name s) e) = do
+    rebind bs' (Binding s e) = do
       s' <- bound bs' s
-      Binding (Name s') <$> expr (insertWith (<>) s [s'] bs') e
-    rebind _ _ = error "Binding has no name; rename before resolving"
-
-    name (Binding (Name s) _ ) = s
-    name _  = error "Binding has no name; rename before resolving"
+      Binding s' <$> expr (insertWith (<>) s [s'] bs') e
 
 lambda :: Bindings -> Args -> [Expr] -> R Expr
 lambda bs (Args ps) es = do

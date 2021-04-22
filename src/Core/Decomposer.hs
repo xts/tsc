@@ -6,7 +6,7 @@ module Core.Decomposer
 
 import Data.Map qualified as Map
 
-import Core.AST
+import Core.IR
 import Core.Extractor
 
 data Image = Image

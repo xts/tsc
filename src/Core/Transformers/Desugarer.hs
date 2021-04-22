@@ -9,8 +9,8 @@ desugar es = Right $ define es
 
 define :: [Expr] -> [Expr]
 define (FunDef name vs bs : es) =
-  [Let [Binding (Name name) (LamDef vs (FreeArgs []) (define bs))] (define es)]
+  [Let [Binding name (LamDef vs (FreeArgs []) (define bs))] (define es)]
 define (VarDef name e : es) = let [e'] = define [e] in
-  [Let [Binding (Name name) e'] (define es)]
+  [Let [Binding name e'] (define es)]
 define (e : es) = e : define es
 define [] = []

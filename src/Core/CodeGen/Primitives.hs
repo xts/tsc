@@ -7,7 +7,7 @@ import Control.Monad.Except (throwError)
 import Data.Map qualified as Map
 import Prelude hiding (print)
 
-import Core.AST
+import Core.IR
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
 import Core.CodeGen.Monad

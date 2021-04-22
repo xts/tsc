@@ -2,7 +2,7 @@ module Core.CodeGen
   ( lower
   ) where
 
-import Core.AST
+import Core.IR
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
 import Core.CodeGen.Monad
@@ -40,8 +40,8 @@ entryFunction = do
 
 reservedStackWords :: Function -> Int
 reservedStackWords (Function _ (Args as) es) =
-  length as + execState (traverseAst go es) 0
+  length as + execState (traverseIr go es) 0
   where
     go :: Expr -> State Int Expr
-    go e@(Let vs _) = (forM_ vs $ \(Binding (Place i) _) -> modify (`max` i)) $> e
+    go e@(Let vs _) = (forM_ vs $ \(Binding i _) -> modify (`max` i)) $> e
     go e = pure e

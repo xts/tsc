@@ -15,7 +15,7 @@ import Control.Monad.Except (Except, runExcept, throwError)
 import Data.Map qualified as Map
 import Prelude hiding (State)
 
-import Core.AST
+import Core.IR
 
 type Primitive = [Expr] -> CodeGen ()
 newtype Primitives = Primitives { unPrimitives :: Map Text Primitive }

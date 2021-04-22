@@ -10,11 +10,11 @@ data Source
   deriving (Show)
 
 data Options = Options
-  { optSource   :: Source
-  , optOut      :: String
-  , optEmitAst  :: Bool
-  , optEmitAst2 :: Bool
-  , optEmitAsm  :: Bool
+  { optSource    :: Source
+  , optOut       :: String
+  , optEmitAst   :: Bool
+  , optEmitIr    :: Bool
+  , optEmitAsm   :: Bool
   , optNoPrelude :: Bool
   } deriving (Show)
 
