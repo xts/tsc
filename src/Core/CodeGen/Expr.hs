@@ -50,12 +50,10 @@ apply e        es = do
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
 lambda _ (FreeArgs fs) l = do
-  heapAlign16
-
   -- Allocate closure with function pointer and free args.
   ins "pushq %rdi"
-  ins "movq %rsi, %rdi"
-  ins $ "addq $" <> show (1 + length fs) <> ", %rsi"
+  alloc Align16 $ 1 + length fs
+  ins "movq %rax, %rdi"
 
   -- Place function pointer at word 1.
   ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
@@ -108,10 +106,9 @@ letForm vs es = do
   mapM_ expr es
   where
     letBind (Binding (Place i) e) = do
-      ins "pushq %rsi"
-      ins "movq %rsi, %rax"
+      alloc Align8 1
+      ins "pushq %rax"
       store (Stack i)
-      ins "addq $8, %rsi"
       expr e
       ins "popq %rdx"
       ins "movq %rax, (%rdx)"

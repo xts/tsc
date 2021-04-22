@@ -1,5 +1,6 @@
 module Core.CodeGen.Emitters
   ( Location(..)
+  , Alignment(..)
   , nil
   , true
   , false
@@ -16,7 +17,7 @@ module Core.CodeGen.Emitters
   , string
   , allocStack
   , freeStack
-  , heapAlign16
+  , alloc
   , ins
   , sep
   , dir
@@ -34,6 +35,8 @@ data Location
   = Closure Int
   | Param Int
   | Stack Int
+
+data Alignment = Align8 | Align16
 
 nil :: CodeGen ()
 nil = moveInt 0x3f "%rax"
@@ -100,10 +103,16 @@ string s (Label l) = do
   define l
   dir $ "asciz \"" <> encodeUtf8 s <> "\""
 
-heapAlign16 :: CodeGen ()
-heapAlign16 = do
-  ins "addq $0x8, %rsi"
-  ins "andq $0xfffffffffffffff0, %rsi"
+alloc :: Alignment -> Int -> CodeGen ()
+alloc a n = do
+  align a
+  ins "movq %rsi, %rax"
+  ins $ "addq $" <> show (8 * n) <> ", %rsi"
+  where
+    align Align8 = pure ()
+    align Align16 = do
+      ins "addq $0x8, %rsi"
+      ins "andq $0xfffffffffffffff0, %rsi"
 
 allocStack :: Int -> CodeGen ()
 allocStack 0         = pure ()
