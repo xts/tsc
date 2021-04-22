@@ -46,22 +46,22 @@ display [e] = do
 display es = throwError $ "display expects 1 parameter, received " <> show (length es)
 
 add :: [Expr] -> CodeGen ()
-add [a, b] = do
-  expr a
-  ins "push %rax"
-  expr b
-  ins "addq (%rsp), %rax"
-  ins "addq $8, %rsp"
-add es = throwError $ "+ expects 2 parameters, received " <> show (length es)
+add es = do
+  ins "pushq $0"
+  forM_ es $ \e -> do
+    expr e
+    ins "addq %rax, (%rsp)"
+  ins "popq %rax"
 
 sub :: [Expr] -> CodeGen ()
-sub [a, b] = do
-  expr b
+sub (e : es) = do
+  expr e
   ins "push %rax"
-  expr a
-  ins "subq (%rsp), %rax"
-  ins "addq $8, %rsp"
-sub es = throwError $ "- expects 2 parameters, received " <> show (length es)
+  forM_ es $ \e' -> do
+    expr e'
+    ins "subq %rax, (%rsp)"
+  ins "popq %rax"
+sub [] = throwError "- expects at least one argument"
 
 lessThan :: [Expr] -> CodeGen ()
 lessThan [a, b] = do
