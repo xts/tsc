@@ -41,23 +41,19 @@ apply e        es = withSavedContext $ do
   callClosure
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
-lambda _ (FreeArgs fs) l = withSavedContext $ do
-  -- Allocate closure with function pointer and free args.
+lambda _ (FreeArgs fs) lab = withSavedContext $ do
   alloc Align16 $ 1 + length fs
   ins "movq %rax, %rdi"
 
-  -- Place function pointer at word 1.
-  ins $ "leaq " <> encodeUtf8 (unLabel l) <> "(%rip), %rax"
+  labelAddr lab
   store (Closure 0)
 
-  -- Store values of free variables in subsequent words.
   forM_ (zip [1..] fs) $ \(i, Place j) -> do
     load (Stack j)
     store (Closure i)
 
-  -- Tag the address as a closure.
   ins "movq %rdi, %rax"
-  ins "orq $6, %rax"
+  tagClosure
 
 _cons :: Text -> Text -> CodeGen ()
 _cons a d = do

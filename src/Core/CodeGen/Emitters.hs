@@ -16,6 +16,9 @@ module Core.CodeGen.Emitters
   , define
   , prologue
   , epilogue
+  , tagClosure
+  , untagClosure
+  , labelAddr
   , string
   , allocStack
   , freeStack
@@ -76,8 +79,8 @@ store (Param i)   = ins $ "movq %rax, " <> show (-8 * (i + 2)) <> "(%rsp)"
 
 callClosure :: CodeGen ()
 callClosure = do
-  ins "subq $6, %rax"         -- Remove closure tag.
-  ins "movq %rax, %rdi"       -- Set closure base.
+  untagClosure
+  ins "movq %rax, %rdi"
   ins "callq *(%rax)"
 
 withSavedContext :: CodeGen () -> CodeGen ()
@@ -110,6 +113,15 @@ epilogue reservedWords = do
   freeStack reservedWords
   ins "popq %rbp"
   ins "retq"
+
+tagClosure :: CodeGen ()
+tagClosure = ins "orq $6, %rax"
+
+untagClosure :: CodeGen ()
+untagClosure = ins "subq $6, %rax"
+
+labelAddr :: Label -> CodeGen ()
+labelAddr (Label l) = ins $ "leaq " <> encodeUtf8 l <> "(%rip), %rax"
 
 string :: Text -> Label -> CodeGen ()
 string s (Label l) = do
