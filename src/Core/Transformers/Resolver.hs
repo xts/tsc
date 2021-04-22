@@ -10,37 +10,31 @@ import Core.CodeGen.Primitives
 
 type Res = (Text, Expr)
 
--- FIXME Pass stack allocation via arg, not state, to re-use slots in
--- independent subtrees; also add new functions to cleanly manipulate arg.
 resolveSymbols :: [A.Expr] -> Either String [Expr]
-resolveSymbols es = Right $ evalState (mapM (resolve prims) es) 0
+resolveSymbols es = Right $ map (resolve prims) es
   where
     prims = map (\s -> (s, Prim s)) $ Map.keys primitives
 
-resolve :: [Res] -> A.Expr -> State Int Expr
-resolve rs (A.Sym s) = pure $ resolution rs s
+resolve :: [Res] -> A.Expr -> Expr
+resolve rs (A.Sym s) = resolution rs s
 
-resolve rs (A.Let vs es) = do
-  vars <- mapM (\b -> (A.bName b,) <$> allocVar) vs
-  vs' <- zipWithM (\r@(_, Var i) b -> Binding i <$> resolve (r : rs) (A.bVal b)) vars vs
-  Let vs' <$> mapM (resolve $ vars <> rs) es
-  where
-    allocVar = modify succ *> get <&> Var
+resolve rs (A.Let vs es) =
+  let vars = zipWith (\b i -> (A.bName b, Var i)) vs [nextVar rs..]
+      vs'  = zipWith (\r@(_, Var i) b -> Binding i $ resolve (r : rs) (A.bVal b)) vars vs
+  in Let vs' $ map (resolve $ vars <> rs) es
 
-resolve rs (A.LamDef (A.Args as) (A.FreeArgs fs) es) = do
+resolve rs (A.LamDef (A.Args as) (A.FreeArgs fs) es) =
   let enumWith c xs = zipWith (\x n -> (x, c n)) xs [1..]
       as'  = enumWith Arg as
       fs'  = enumWith CArg fs
       free = FreeArgs $ map (resolutionVar rs) fs
-  LamDef (Args as) free
-    <$> (withTemporaryState (length as)
-         $ mapM (resolve $ as' <> fs' <> rs) es)
+  in LamDef (Args as) free $ map (resolve $ as' <> fs' <> (sentinel : rs)) es
 
-resolve rs (A.List es)  = List <$> mapM (resolve rs) es
-resolve rs (A.If p t f) = If <$> resolve rs p <*> resolve rs t <*> resolve rs f
+resolve rs (A.List es)  = List $ map (resolve rs) es
+resolve rs (A.If p t f) = If (resolve rs p) (resolve rs t) (resolve rs f)
 
-resolve _ (A.Lit x) = pure $ Lit x
-resolve _ A.Nil     = pure Nil
+resolve _ (A.Lit x) = Lit x
+resolve _ A.Nil     = Nil
 resolve _ e         = error $ "Cannot resolve-transform " <> show e
 
 resolution :: [Res] -> Text -> Expr
@@ -53,5 +47,12 @@ resolutionVar rs s = case resolution rs s of
   Var i -> i
   _     -> error $ "not a variable " <> show s
 
-withTemporaryState :: s -> State s r -> State s r
-withTemporaryState x f = get >>= \st -> put x *> f <* put st
+nextVar :: [Res] -> Int
+nextVar ((_, Var k) : _) = succ k
+nextVar (e          : es)
+  | e == sentinel = 1
+  | otherwise     = nextVar es
+nextVar []        = 1
+
+sentinel :: Res
+sentinel = (mempty, Nil)
