@@ -98,10 +98,8 @@ string s (Label l) = do
 
 heapAlign16 :: CodeGen ()
 heapAlign16 = do
-  ins "movq %rsi, %rax"
-  ins "andq $0xf, %rax"
-  ins "addq $0x10, %rsi"
-  ins "subq %rax, %rsi"
+  ins "addq $0x8, %rsi"
+  ins "andq $0xfffffffffffffff0, %rsi"
 
 allocStack :: Int -> CodeGen ()
 allocStack 0         = pure ()
