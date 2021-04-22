@@ -56,14 +56,18 @@ stringPtr (Label l) = do
   ins $ "leaq " <> encodeUtf8 l <> "(%rip), %rax"
   ins "orq $3, %rax"
 
+-- | Load a value from the given location.
 load :: Location -> CodeGen ()
-load (Stack i) = ins $ "movq " <> show (-8 * i) <> "(%rbp), %rax"
-load (Closure i) = ins $ "movq " <> show (8 * i) <> "(%rdi), %rax"
+load (Closure i) = ins $ "movq " <> show ( 8 * i) <> "(%rdi), %rax"
+load (Stack i)   = ins $ "movq " <> show (-8 * i) <> "(%rbp), %rax"
+load (Param _)   = throwError "Can't load from parameter"
 
 store :: Location -> CodeGen ()
-store (Param i)   = ins $ "movq %rax, " <> show (-8 * (i + 2)) <> "(%rsp)"
+store (Closure i) = ins $ "movq %rax, " <> show ( 8 * i) <> "(%rdi)"
 store (Stack i)   = ins $ "movq %rax, " <> show (-8 * i) <> "(%rbp)"
-store (Closure i) = ins $ "movq %rax, " <> show (8 * i) <> "(%rdi)"
+-- The first of the callee's stack slots is used for the return address, the
+-- second for the callee's rbp-save, and so parameters start at stack slot 3.
+store (Param i)   = ins $ "movq %rax, " <> show (-8 * (i + 2)) <> "(%rsp)"
 
 deref :: CodeGen ()
 deref = ins "movq (%rax), %rax"
