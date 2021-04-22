@@ -41,9 +41,8 @@ apply e        es = withSavedContext $ do
   callClosure
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
-lambda _ (FreeArgs fs) l = do
+lambda _ (FreeArgs fs) l = withSavedContext $ do
   -- Allocate closure with function pointer and free args.
-  ins "pushq %rdi"
   alloc Align16 $ 1 + length fs
   ins "movq %rax, %rdi"
 
@@ -59,7 +58,6 @@ lambda _ (FreeArgs fs) l = do
   -- Tag the address as a closure.
   ins "movq %rdi, %rax"
   ins "orq $6, %rax"
-  ins "popq %rdi"
 
 _cons :: Text -> Text -> CodeGen ()
 _cons a d = do
