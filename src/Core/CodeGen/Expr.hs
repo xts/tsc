@@ -1,7 +1,10 @@
 module Core.CodeGen.Expr
-  ( expr
+  ( Var(..)
+  , expr
   , literal
   , varAddr
+  , stackSlot
+  , closureSlot
   ) where
 
 import Control.Monad.Except (throwError)
@@ -10,6 +13,8 @@ import Data.Char (isAscii)
 import Core.AST
 import Core.CodeGen.Emitters
 import Core.CodeGen.Monad
+
+data Var = Stack Int | Closure Int
 
 expr :: Expr -> CodeGen ()
 expr Nil           = ins "movq $0x3f, %rax"
@@ -149,3 +154,9 @@ letForm vs es = do
       ins "popq %rdx"
       ins "movq %rax, (%rdx)"
     letBind _ = throwError "Run resolver pass to allocate stack space"
+
+stackSlot :: Int -> ByteString
+stackSlot = fromString . show . ((-8) *)
+
+closureSlot :: Int -> ByteString
+closureSlot = fromString . show . (8 *)

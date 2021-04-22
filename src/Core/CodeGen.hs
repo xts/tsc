@@ -11,29 +11,23 @@ import Core.Decomposer
 import Core.Extractor (Function(..))
 
 lower :: Image -> Either String ByteString
-lower (Image funs strs) = do
-  lambdas <- mconcat <$> mapM function funs
-  other   <- mconcat <$> mapM (uncurry string) strs
-  entry   <- gen' "_scheme_entry" 0 entryFunction
-  pure $ other <> lambdas <> entry
+lower (Image fs ss) = runCodeGen primitives $ do
+  dir "text"
+  mapM_ (uncurry string) ss
+  mapM_ function fs
+  entryFunction
 
-spaceReq :: Function -> Int
-spaceReq (Function _ (Args as) es) = length as + execState (traverseAst go es) 0
-  where
-    go :: Expr -> State Int Expr
-    go e@(Let vs _) = (forM_ vs $ \(Binding (Place i) _) -> modify (`max` i)) $> e
-    go e = pure e
-
-function :: Function -> Either String ByteString
+function :: Function -> CodeGen ()
 function f@(Function (Label ctx) _ es) = do
-  let sr = spaceReq f
-  (space, body) <- gen ctx (spaceReq f) $ mapM_ expr es
-  (_,     pre)  <- gen ctx 0 $ prologue (space + sr * 8)
-  (_,     post) <- gen ctx 0 $ epilogue (space + sr * 8)
-  pure $ pre <> body <> post
+  let rsw = reservedStackWords f
+  setContext ctx
+  prologue rsw
+  mapM_ expr es
+  epilogue rsw
 
-string :: Text -> Label -> Either String ByteString
-string s (Label l) = gen' l 0 $ do
+string :: Text -> Label -> CodeGen ()
+string s (Label l) = do
+  setContext l
   dir $ "globl " <> encodeUtf8 l
   dir "p2align 4, 0x90"
   label $ encodeUtf8 l
@@ -42,24 +36,24 @@ string s (Label l) = gen' l 0 $ do
 prologue :: Int -> CodeGen ()
 prologue space = do
   name <- encodeUtf8 <$> context
-  dir "text"
   dir $ "globl " <> name
   dir "p2align 4, 0x90"
   label name
   ins "pushq %rbp"
   ins "movq %rsp, %rbp"
   when (space > 0) $
-    ins $ "subq $" <> fromString (show space) <> ", %rsp"
+    ins $ "subq $" <> fromString (show $ 8 * space) <> ", %rsp"
 
 epilogue :: Int -> CodeGen ()
 epilogue space = do
   when (space > 0) $
-    ins $ "addq $" <> fromString (show space) <> ", %rsp"
+    ins $ "addq $" <> fromString (show $ 8 * space) <> ", %rsp"
   ins "popq %rbp"
   ins "retq"
 
 entryFunction :: CodeGen ()
 entryFunction = do
+  setContext "_scheme_entry"
   prologue 0
   ins "movq %rsi, %rsp" -- Our second argument is the stack ptr.
   ins "movq %rdi, %rsi" -- Our first argument is the heap ptr.
@@ -70,8 +64,10 @@ entryFunction = do
   ins "xorq %rax, %rax" -- Return 0 to the OS.
   epilogue 0
 
-gen :: Text -> Int -> CodeGen () -> Either String (Int, ByteString)
-gen ctx nargs = runCodeGen ctx nargs primitives
-
-gen' :: Text -> Int -> CodeGen () -> Either String ByteString
-gen' ctx nargs f = snd <$> gen ctx nargs f
+reservedStackWords :: Function -> Int
+reservedStackWords (Function _ (Args as) es) =
+  length as + execState (traverseAst go es) 0
+  where
+    go :: Expr -> State Int Expr
+    go e@(Let vs _) = (forM_ vs $ \(Binding (Place i) _) -> modify (`max` i)) $> e
+    go e = pure e
