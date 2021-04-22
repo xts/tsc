@@ -13,7 +13,7 @@ expr :: Expr -> CodeGen ()
 expr Nil           = nil
 expr (Sym s)       = throwError $ "Run resolver pass to resolve " <> show s
 expr (Lit lit)     = literal lit
-expr (List (x:xs)) = form x xs
+expr (List (x:xs)) = apply x xs
 expr (Let vs es)   = letForm vs es
 expr (Arg i)       = load (Stack i)
 expr (Var i)       = load (Stack i) >> deref
@@ -31,9 +31,9 @@ literal (Char c)     = char c
 literal (String (Right l)) = stringPtr l
 literal (String (Left _))  = throwError "String should have been labelized"
 
-form :: Expr -> [Expr] -> CodeGen ()
-form (Prim s) es = primitive s >>= ($ es)
-form e        es = do
+apply :: Expr -> [Expr] -> CodeGen ()
+apply (Prim s) es = primitive s >>= ($ es)
+apply e        es = do
   -- Push arguments.
   forM_ (zip es [1..]) $ \(e', i) -> do
     expr e'
