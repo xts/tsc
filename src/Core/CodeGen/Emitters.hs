@@ -10,6 +10,8 @@ module Core.CodeGen.Emitters
   , load
   , store
   , deref
+  , callClosure
+  , withSavedContext
   , moveInt
   , define
   , prologue
@@ -71,6 +73,18 @@ store (Stack i)   = ins $ "movq %rax, " <> show (-8 * i) <> "(%rbp)"
 -- The first of the callee's stack slots is used for the return address, the
 -- second for the callee's rbp-save, and so parameters start at stack slot 3.
 store (Param i)   = ins $ "movq %rax, " <> show (-8 * (i + 2)) <> "(%rsp)"
+
+callClosure :: CodeGen ()
+callClosure = do
+  ins "subq $6, %rax"         -- Remove closure tag.
+  ins "movq %rax, %rdi"       -- Set closure base.
+  ins "callq *(%rax)"
+
+withSavedContext :: CodeGen () -> CodeGen ()
+withSavedContext f = do
+  ins "pushq %rdi"
+  f
+  ins "popq %rdi"
 
 deref :: CodeGen ()
 deref = ins "movq (%rax), %rax"

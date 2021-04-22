@@ -121,3 +121,8 @@ spec = parallel $ do
       running "(let ((x 0)) (set! x 42) (display x))" `shouldReturn` "42"
       running "(let ((count (let ((c 0)) (lambda () (set! c (+ 1 c)) c)))) (display (count)) (display (count)) (display (count)))"
         `shouldReturn` "123"
+
+    -- Nested closure calls.
+    it "restores closures" $ do
+      running "(let ((x 0)) (let ((inc (lambda () (set! x (+ x 1))))) (let ((inc2 (lambda () (inc) (inc)))) (inc2) (display x))))"
+        `shouldReturn` "2"

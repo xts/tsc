@@ -33,20 +33,12 @@ literal (String (Left _))  = throwError "String should have been labelized"
 
 apply :: Expr -> [Expr] -> CodeGen ()
 apply (Prim s) es = primitive s >>= ($ es)
-apply e        es = do
-  -- Push arguments.
+apply e        es = withSavedContext $ do
   forM_ (zip es [1..]) $ \(e', i) -> do
     expr e'
     store (Param i)
-
-  -- Find closure.
   expr e
-
-  -- Call closure.
-  ins "subq $6, %rax"
-  ins "movq %rax, %rdi"
-  ins "movq (%rax), %rax"
-  ins "callq *%rax"
+  callClosure
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
 lambda _ (FreeArgs fs) l = do
