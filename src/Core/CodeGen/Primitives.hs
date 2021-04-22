@@ -48,33 +48,33 @@ display es = throwError $ "display expects 1 parameter, received " <> show (leng
 add :: [Expr] -> CodeGen ()
 add [a, b] = do
   expr a
-  withStackSlot $ \slot -> do
-    ins $ "movq %rax, " <> slot <> "(%rbp)"
-    expr b
-    ins $ "addq " <> slot <> "(%rbp), %rax"
+  ins "push %rax"
+  expr b
+  ins "addq (%rsp), %rax"
+  ins "addq $8, %rsp"
 add es = throwError $ "+ expects 2 parameters, received " <> show (length es)
 
 sub :: [Expr] -> CodeGen ()
 sub [a, b] = do
-  withStackSlot $ \slot -> do
-    expr b
-    ins $ "movq %rax, " <> slot <> "(%rbp)"
-    expr a
-    ins $ "subq " <> slot <> "(%rbp), %rax"
+  expr b
+  ins "push %rax"
+  expr a
+  ins "subq (%rsp), %rax"
+  ins "addq $8, %rsp"
 sub es = throwError $ "- expects 2 parameters, received " <> show (length es)
 
 lessThan :: [Expr] -> CodeGen ()
 lessThan [a, b] = do
   lab <- funLabel
-  withStackSlot $ \slot -> do
-    expr b
-    ins $ "movq %rax, " <> slot <> "(%rbp)"
-    expr a
-    ins $ "subq " <> slot <> "(%rbp), %rax"
-    literal $ Bool False
-    ins $ "jge " <> lab
-    literal $ Bool True
-    label lab
+  expr b
+  ins "push %rax"
+  expr a
+  ins "subq (%rsp), %rax"
+  literal $ Bool False
+  ins $ "jge " <> lab
+  literal $ Bool True
+  label lab
+  ins "addq $8, %rsp"
 lessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)
 
 set :: [Expr] -> CodeGen ()
@@ -87,9 +87,7 @@ set [v, e] = do
 set es = throwError $ "set! expects 2 arguments, received " <> show (length es)
 
 addr :: Expr -> CodeGen ()
-addr (Sym s) = lookupVariable s >>= \case
-  Just slot -> varAddr slot
-  Nothing   -> throwError $ "No such variable " <> show s
+addr (Sym _) = throwError "Use resolver"
 addr (CArg n) = varAddr (Closure n)
 addr (Var n)  = varAddr (Stack n)
 addr e = throwError $ "Don't know how to resolve the address of " <> show e
