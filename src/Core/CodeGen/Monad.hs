@@ -5,12 +5,13 @@ module Core.CodeGen.Monad
   , context
   , setContext
   , lookupPrimitive
+  , primitive
   , emit
   , funLabel
   ) where
 
 import Control.Monad.RWS (RWST, evalRWST, tell)
-import Control.Monad.Except (Except, runExcept)
+import Control.Monad.Except (Except, runExcept, throwError)
 import Data.Map qualified as Map
 import Prelude hiding (State)
 
@@ -42,6 +43,11 @@ setContext ctx = modify $ \st -> st { stContext = ctx }
 
 lookupPrimitive :: Text -> CodeGen (Maybe Primitive)
 lookupPrimitive name = Map.lookup name . unPrimitives <$> ask
+
+primitive :: Text -> CodeGen Primitive
+primitive name = lookupPrimitive name >>= \case
+  Just prim -> pure prim
+  Nothing   -> throwError $ "Internal error; lost primitive " <> show name
 
 funLabel :: CodeGen ByteString
 funLabel = do

@@ -70,9 +70,9 @@ lessThan [a, b] = do
   ins "push %rax"
   expr a
   ins "subq (%rsp), %rax"
-  literal $ Bool False
+  false
   ins $ "jge " <> lab
-  literal $ Bool True
+  true
   label lab
   ins "addq $8, %rsp"
 lessThan es = throwError $ "< expects 2 arguments, received " <> show (length es)
@@ -87,7 +87,6 @@ set [v, e] = do
 set es = throwError $ "set! expects 2 arguments, received " <> show (length es)
 
 addr :: Expr -> CodeGen ()
-addr (Sym _) = throwError "Use resolver"
-addr (CArg n) = varAddr (Closure n)
-addr (Var n)  = varAddr (Stack n)
-addr e = throwError $ "Don't know how to resolve the address of " <> show e
+addr (Var i)  = load (Stack i)
+addr (CArg i) = load (Closure i)
+addr e        = error $ "Don't know how to find the address of " <> show e

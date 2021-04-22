@@ -25,32 +25,6 @@ function f@(Function (Label ctx) _ es) = do
   mapM_ expr es
   epilogue rsw
 
-string :: Text -> Label -> CodeGen ()
-string s (Label l) = do
-  setContext l
-  dir $ "globl " <> encodeUtf8 l
-  dir "p2align 4, 0x90"
-  label $ encodeUtf8 l
-  dir $ "asciz \"" <> encodeUtf8 s <> "\""
-
-prologue :: Int -> CodeGen ()
-prologue space = do
-  name <- encodeUtf8 <$> context
-  dir $ "globl " <> name
-  dir "p2align 4, 0x90"
-  label name
-  ins "pushq %rbp"
-  ins "movq %rsp, %rbp"
-  when (space > 0) $
-    ins $ "subq $" <> fromString (show $ 8 * space) <> ", %rsp"
-
-epilogue :: Int -> CodeGen ()
-epilogue space = do
-  when (space > 0) $
-    ins $ "addq $" <> fromString (show $ 8 * space) <> ", %rsp"
-  ins "popq %rbp"
-  ins "retq"
-
 entryFunction :: CodeGen ()
 entryFunction = do
   setContext "_scheme_entry"
