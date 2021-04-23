@@ -1,6 +1,9 @@
-module Core.Transformers.FreeFinder where
+module Core.Transformers.FreeFinder
+  ( findFree
+  ) where
 
-import Data.Set qualified as Set
+import Control.Monad.Writer (execWriter, tell)
+import Data.List (nub)
 
 import Core.AST
 import Core.CodeGen.Primitives
@@ -15,15 +18,13 @@ findFree = Right . runIdentity . traverseAst go
     go e                       = pure e
 
 freeArgs :: Env -> [Expr] -> FreeArgs
-freeArgs bns exs = FreeArgs $ Set.toList $ execState (mapM (go bns) exs) mempty
+freeArgs bns exs = FreeArgs $ nub $ execWriter $ mapM (go bns) exs
   where
-    go :: Env -> Expr -> State (Set Text) Expr
-    -- Capture free valiables.
-    go bs e@(Sym s) | isFree bs s = modify (Set.insert s) $> e
+    -- Capture free symbols.
+    go bs e@(Sym s) | isFree bs s = tell [s] $> e
 
-    -- Capture free variables from a deeper lambda that are also free in our context.
-    go bs e@(LamDef _ (FreeArgs fs) _) =
-      modify (Set.fromList (filter (isFree bs) fs) <>) $> e
+    -- Capture free variables from a deeper lambda when they are also free in our context.
+    go bs e@(LamDef _ (FreeArgs fs) _) = tell (filter (isFree bs) fs) $> e
 
     -- Recurse.
     go bs (If p t f)  = If <$> go bs p <*> go bs t <*> go bs f
