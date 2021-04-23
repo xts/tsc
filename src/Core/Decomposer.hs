@@ -1,5 +1,6 @@
 module Core.Decomposer
   ( Image(..)
+  , Function(..)
   , decompose
   , mainLabel
   ) where
@@ -7,11 +8,16 @@ module Core.Decomposer
 import Data.Map qualified as Map
 
 import Core.IR
-import Core.Extractor
 
 data Image = Image
   { imFuns :: [Function]
   , imStrs :: [(Text, Label)]
+  } deriving (Eq, Show)
+
+data Function = Function
+  { funLabel :: Label
+  , funArgs :: Args
+  , funBody :: [Expr]
   } deriving (Eq, Show)
 
 decompose :: [Expr] -> Either String Image
@@ -20,6 +26,32 @@ decompose es =
       (es'', lambdas)  = extractLambdas es'
       main = Function mainLabel (Args []) es''
   in Right $ Image (main : lambdas) $ Map.toList strings
+
+extractLambdas :: [Expr] -> ([Expr], [Function])
+extractLambdas es = runState (traverseIr go es) []
+  where
+    go :: Expr -> State [Function] Expr
+    go (LamDef as fs es') = do
+      labels <- get
+      let lab = Label $ "_lambda_" <> show (length labels)
+      modify (Function lab as es' :)
+      pure $ LamDec as fs lab
+    go e = pure e
+
+extractStrings :: [Expr] -> ([Expr], Map Text Label)
+extractStrings es = runState (traverseIr go es) mempty
+  where
+    go :: Expr -> State (Map Text Label) Expr
+    go (Lit (String (Left s))) = Lit . String . Right <$> label s
+    go e                       = pure e
+
+    label :: Text -> State (Map Text Label) Label
+    label s = get >>= \labels -> case Map.lookup s labels of
+      Just l  -> pure l
+      Nothing -> do
+        let lab = Label $ "_string_" <> show (Map.size labels)
+        modify $ Map.insert s lab
+        pure lab
 
 mainLabel :: Label
 mainLabel = Label "_scheme_main"

@@ -8,7 +8,6 @@ import Core.CodeGen.Expr
 import Core.CodeGen.Monad
 import Core.CodeGen.Primitives
 import Core.Decomposer
-import Core.Extractor (Function(..))
 
 lower :: Image -> Either String ByteString
 lower (Image fs ss) = runCodeGen primitives $ do

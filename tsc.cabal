@@ -42,7 +42,6 @@ library
     Core.CodeGen.Primitives,
     Core.Compiler,
     Core.Decomposer,
-    Core.Extractor,
     Core.IR,
     Core.Linker,
     Core.Options,
