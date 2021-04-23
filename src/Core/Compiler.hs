@@ -27,9 +27,7 @@ compile options = runExceptT pipeline
         File path   -> lift $ readFile path
 
       -- Parse it, optionally with prelude.
-      ast <- except $ parse $ if optNoPrelude options
-        then source
-        else prelude <> source
+      ast <- except $ parse $ optionalPrelude <> source
       maybeEmit optEmitAst $ show ast
 
       -- Transform it into a simpler form.
@@ -50,7 +48,10 @@ compile options = runExceptT pipeline
       -- Link executable.
       link asm (optOut options)
 
-    maybeEmit :: (Options -> Bool) -> String -> ExceptT String IO ()
     maybeEmit f x
       | f options = throwE x
       | otherwise = pure ()
+
+    optionalPrelude
+      | optNoPrelude options = mempty
+      | otherwise            = prelude
