@@ -16,7 +16,6 @@ data Expr
   | List [Expr]
   | Let [Binding] [Expr]
   | LamDef Args FreeArgs [Expr]
-  | LamDec Args FreeArgs Label
   | If Expr Expr Expr
   | FunDef Name Args [Expr]
   | VarDef Name Expr
