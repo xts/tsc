@@ -47,7 +47,6 @@ library
     Core.Options,
     Core.Parser,
     Core.Prelude,
-    Core.Transformer,
     Core.Transformers.Desugarer,
     Core.Transformers.FreeFinder,
     Core.Transformers.Renamer,

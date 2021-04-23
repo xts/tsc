@@ -12,7 +12,10 @@ import Core.Linker
 import Core.Options
 import Core.Parser
 import Core.Prelude
-import Core.Transformer
+import Core.Transformers.Desugarer
+import Core.Transformers.FreeFinder
+import Core.Transformers.Renamer
+import Core.Transformers.Resolver
 
 compile :: Options -> IO (Either String ())
 compile options = runExceptT pipeline
@@ -30,7 +33,11 @@ compile options = runExceptT pipeline
       maybeEmit optEmitAst $ show ast
 
       -- Transform it into a simpler form.
-      ir <- except $ transform ast
+      ir <- except $
+        desugar ast
+        >>= rename
+        >>= findFree
+        >>= resolveSymbols
       maybeEmit optEmitIr $ show ir
 
       -- Decompose it into a series of functions and associated data.
