@@ -31,7 +31,7 @@ compile options = runExceptT pipeline
 
       -- Parse it, optionally with prelude.
       ast <- except $ parse $ optionalPrelude <> source
-      maybeEmit optEmitAst $ unpack $ AST.prettyPrint ast
+      maybeEmit optEmitAst $ AST.prettyPrint ast
 
       -- Transform it into a simpler form.
       ir <- except $
@@ -39,7 +39,7 @@ compile options = runExceptT pipeline
         >>= rename
         >>= findFree
         >>= resolveSymbols
-      maybeEmit optEmitIr $ unpack $ IR.prettyPrint ir
+      maybeEmit optEmitIr $ IR.prettyPrint ir
 
       -- Decompose it into a series of functions and associated data.
       image <- except $ decompose ir
@@ -52,7 +52,7 @@ compile options = runExceptT pipeline
       link asm (optOut options)
 
     maybeEmit f x
-      | f options = throwE x
+      | f options = throwE $ unpack x
       | otherwise = pure ()
 
     optionalPrelude

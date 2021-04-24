@@ -56,9 +56,8 @@ bind :: Text -> Bindings -> R Bindings
 bind s bs = do
   n <- count s
   let name = s <> pack (show n)
-  let bs' = insertWith (<>) s [name] bs
   remember name s
-  pure bs'
+  pure $ insertWith (<>) s [name] bs
 
 count :: Text -> R Int
 count s = fromMaybe 0 . lookup s <$> gets counts
