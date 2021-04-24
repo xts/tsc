@@ -1,0 +1,5 @@
+(display (+ 2 2)) (newline)
+(display (+ -1 1)) (newline)
+(display (- 2 2)) (newline)
+(display (+ 2 (- 4 7))) (newline)
+(display (+ 1 2 3 4 5 6 7 8 9 10)) (newline)

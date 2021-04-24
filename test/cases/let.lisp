@@ -1,0 +1,6 @@
+(display (let ((x 2)) (+ x x)))
+(display (let ((x 2) (y 1)) (+ x y)))
+(display (let (x) x))
+(display (let () 0))
+(display (let ((x 1)) (+ (let ((x 2)) x) x)))
+(let ((say (lambda (x) (display x)))) (say "hi") (say "you"))

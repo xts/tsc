@@ -1,0 +1,5 @@
+(display 0) (newline)
+(display 1) (newline)
+(display -1) (newline)
+(display -536870912) (newline)
+(display 536870911) (newline)

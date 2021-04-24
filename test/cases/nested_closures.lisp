@@ -1,0 +1,8 @@
+(let ((x 0))
+  (let ((inc (lambda ()
+               (set! x (+ x 1)))))
+    (let ((inc2 (lambda ()
+                  (inc)
+                  (inc))))
+      (inc2)
+      (display x))))

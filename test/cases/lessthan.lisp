@@ -1,0 +1,5 @@
+(display (< 1 2))
+(display (< 2 1))
+(display (< -1 0))
+(display (< -1 -2))
+(display (< 1 1))
