@@ -37,7 +37,11 @@ spec :: Spec
 spec = do
   tests <- runIO $ findTests
   parallel $ do
-    describe "compile/run" $ do
+    describe "compile" $ do
       forM_ tests $ \(name, program, result) -> do
-        it name $ do
+        it (map replaceUnderscore name) $ do
           running program `shouldReturn` result
+
+  where
+    replaceUnderscore '_' = ' '
+    replaceUnderscore c   = c
