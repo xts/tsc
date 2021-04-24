@@ -13,6 +13,7 @@ common shared
   default-language: Haskell2010
   default-extensions:
     FlexibleContexts,
+    FlexibleInstances,
     GADTs,
     GeneralizedNewtypeDeriving,
     LambdaCase,
@@ -47,6 +48,7 @@ library
     Core.Options,
     Core.Parser,
     Core.Prelude,
+    Core.PrettyPrinter,
     Core.Transformers.Desugarer,
     Core.Transformers.FreeFinder,
     Core.Transformers.Renamer,

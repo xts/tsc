@@ -3,11 +3,14 @@ module Core.Compiler
   ) where
 
 import Control.Monad.Trans.Except (except, throwE)
+import Data.Text (unpack)
 import Data.Text.IO (readFile)
 import Prelude hiding (readFile)
 
+import Core.AST qualified as AST
 import Core.CodeGen
 import Core.Decomposer
+import Core.IR qualified as IR
 import Core.Linker
 import Core.Options
 import Core.Parser
@@ -28,7 +31,7 @@ compile options = runExceptT pipeline
 
       -- Parse it, optionally with prelude.
       ast <- except $ parse $ optionalPrelude <> source
-      maybeEmit optEmitAst $ show ast
+      maybeEmit optEmitAst $ unpack $ AST.prettyPrint ast
 
       -- Transform it into a simpler form.
       ir <- except $
@@ -36,7 +39,7 @@ compile options = runExceptT pipeline
         >>= rename
         >>= findFree
         >>= resolveSymbols
-      maybeEmit optEmitIr $ show ir
+      maybeEmit optEmitIr $ unpack $ IR.prettyPrint ir
 
       -- Decompose it into a series of functions and associated data.
       image <- except $ decompose ir
