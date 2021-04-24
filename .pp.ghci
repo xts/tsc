@@ -1,5 +1,0 @@
--- Load in GHCI with :cmd readFile ".pp.ghci"
-:l Core.PrettyPrinter Core.Parser
-:m +Core.Parser
-import qualified Data.Text.IO as T
-let pp = T.putStrLn . prettyPrint . (\(Right [y]) -> y) . Core.Parser.parse
