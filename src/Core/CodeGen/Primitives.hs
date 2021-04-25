@@ -25,6 +25,8 @@ primitives = fromList
   , ("set!", set)
   , ("read-char", readChar)
   , ("error", error)
+  , ("number->char", numberToChar)
+  , ("char->number", charToNumber)
   ]
 
 display :: [Expr] -> CodeGen ()
@@ -102,3 +104,18 @@ error [e] = do
   ins "movq $1, %rdi"
   callC "_exit"
 error _ = throwError "error: error currently only takes one argument"
+
+numberToChar :: [Expr] -> CodeGen ()
+numberToChar [e] = do
+  expr e
+  untagFixnum
+  ins "andq $0xff, %rax"
+  tagChar
+numberToChar _ = throwError "error: number->char takes one argument"
+
+charToNumber :: [Expr] -> CodeGen ()
+charToNumber [e] = do
+  expr e
+  untagChar
+  tagFixnum
+charToNumber _ = throwError "error: char->number takes one argument"
