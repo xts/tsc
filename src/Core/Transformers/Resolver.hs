@@ -54,7 +54,7 @@ resolution rs s = case find ((== s) . fst) rs of
 resolutionVar :: [Res] -> Text -> Int
 resolutionVar rs s = case resolution rs s of
   Var i -> i
-  _     -> error $ "not a variable " <> show s
+  e     -> error $ "not a variable: " <> show s <> " is " <> show e
 
 nextVar :: [Res] -> Int
 nextVar ((_, Var k) : _) = succ k
