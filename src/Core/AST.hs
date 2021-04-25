@@ -79,8 +79,8 @@ instance HasPrettyPrint [Expr] where
         where
           letBinding (Binding s e) = "(" .+ string s .+ " " .+ go e .+ ")"
 
-      go (LamDef (Args as) _ es) =
-          "(lambda (" .+ intercalate " " (map string as) .+ ")"
+      go (LamDef (Args as) (FreeArgs fs) es) =
+          "(lambda (" .+ intercalate " " (map string as) .+ ")" .+ " [" .+ intercalate " " (map string fs) .+ "]"
         .| "  " .+ align (map go es) .+ ")"
 
       go (If p t f) =
