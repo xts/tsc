@@ -11,12 +11,13 @@ import Text.Megaparsec.Char.Lexer qualified as L
 import Prelude hiding (bool, some)
 
 import Core.AST
+import Core.Transform (Transform, transform)
 
 type Parser = Parsec Void Text
 
 -- | Parse a text and return the AST or a pretty parse error.
-parse :: Text -> Either String [Expr]
-parse = mapLeft errorBundlePretty . runParser program "<input>"
+parse :: Monad m => Text -> Transform m [Expr]
+parse = transform . mapLeft errorBundlePretty . runParser program "<input>"
 
 -- | A program is a sequence of expressions.
 program :: Parser [Expr]

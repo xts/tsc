@@ -1,5 +1,5 @@
 module Core.CodeGen
-  ( lower
+  ( lowerToAsm
   ) where
 
 import Core.IR
@@ -8,9 +8,10 @@ import Core.CodeGen.Expr
 import Core.CodeGen.Monad
 import Core.CodeGen.Primitives
 import Core.Decomposer
+import Core.Transform (Transform, transform)
 
-lower :: Image -> Either String ByteString
-lower (Image fs ss) = runCodeGen primitives $ do
+lowerToAsm :: Monad m => Image -> Transform m ByteString
+lowerToAsm (Image fs ss) = transform $ runCodeGen primitives $ do
   dir "text"
   mapM_ (uncurry string) ss
   mapM_ function fs

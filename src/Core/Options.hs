@@ -12,11 +12,9 @@ data Source
 data Options = Options
   { optSource    :: Source
   , optOut       :: String
-  , optEmitAst   :: Bool
-  , optEmitIr    :: Bool
-  , optEmitAsm   :: Bool
+  , optCredits   :: Int
   , optNoPrelude :: Bool
   } deriving (Show)
 
 defOptions :: Options
-defOptions = Options (Source "") "a.out" False False False False
+defOptions = Options (Source "") "a.out" maxBound False

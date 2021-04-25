@@ -2,8 +2,13 @@ module ParserSpec (spec) where
 
 import Test.Hspec
 
+import Control.Monad.Except (runExcept)
 import Core.AST
-import Core.Parser
+import Core.Parser qualified as P
+import Core.Transform (evalTransform)
+
+parse :: Text -> Either String [Expr]
+parse s = runExcept $ evalTransform 0 $ P.parse s
 
 spec :: Spec
 spec = do

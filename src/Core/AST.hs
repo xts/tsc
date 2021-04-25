@@ -59,34 +59,34 @@ traverseAst h = mapM g
     go (VarDef n e)      = VarDef n <$> g e
     go e                 = pure e
 
-prettyPrint :: [Expr] -> Text
-prettyPrint = runPP . intercalate newline . map go
-  where
-    go Nil = "()"
-    go (Sym s) = string s
-    go (Lit (Bool True)) = "#t"
-    go (Lit (Bool False)) = "#f"
-    go (Lit (Fixnum k)) = show k
-    go (Lit (Char c)) = show c
-    go (Lit (String (Left s))) = show s
-    go (Lit (String (Right (Label l)))) = "%L" .+ string l
-    go (List es) = "(" .+ intercalate " " (map go es) .+ ")"
-    go (VarDef s e) = "(define " .+ string s .+ " " .+ go e .+ ")"
+instance HasPrettyPrint [Expr] where
+  prettyPrint = runPP . intercalate newline . map go
+    where
+      go Nil = "()"
+      go (Sym s) = string s
+      go (Lit (Bool True)) = "#t"
+      go (Lit (Bool False)) = "#f"
+      go (Lit (Fixnum k)) = show k
+      go (Lit (Char c)) = show c
+      go (Lit (String (Left s))) = show s
+      go (Lit (String (Right (Label l)))) = "%L" .+ string l
+      go (List es) = "(" .+ intercalate " " (map go es) .+ ")"
+      go (VarDef s e) = "(define " .+ string s .+ " " .+ go e .+ ")"
 
-    go (Let vs es) =
-         "(let (" .+ align (map letBinding vs) .+ ")"
-      .| "  " .+ align (map go es) .+ ")"
-      where
-        letBinding (Binding s e) = "(" .+ string s .+ " " .+ go e .+ ")"
+      go (Let vs es) =
+          "(let (" .+ align (map letBinding vs) .+ ")"
+        .| "  " .+ align (map go es) .+ ")"
+        where
+          letBinding (Binding s e) = "(" .+ string s .+ " " .+ go e .+ ")"
 
-    go (LamDef (Args as) _ es) =
-         "(lambda (" .+ intercalate " " (map string as) .+ ")"
-      .| "  " .+ align (map go es) .+ ")"
+      go (LamDef (Args as) _ es) =
+          "(lambda (" .+ intercalate " " (map string as) .+ ")"
+        .| "  " .+ align (map go es) .+ ")"
 
-    go (If p t f) =
-         "(if " .+ go p
-      .| "      " .+ align [go t, go f] .+ ")"
+      go (If p t f) =
+          "(if " .+ go p
+        .| "      " .+ align [go t, go f] .+ ")"
 
-    go (FunDef s (Args as) es) =
-         "(define " .+ string s .+ " (" .+ intercalate " " (map string as) .+ ")"
-      .| "  " .+ align (map go es) .+ ")"
+      go (FunDef s (Args as) es) =
+          "(define " .+ string s .+ " (" .+ intercalate " " (map string as) .+ ")"
+        .| "  " .+ align (map go es) .+ ")"

@@ -1,5 +1,5 @@
 module Core.Transformers.FreeFinder
-  ( findFree
+  ( findFreeVars
   ) where
 
 import Control.Monad.Writer (execWriter, tell)
@@ -7,12 +7,13 @@ import Data.List (nub)
 
 import Core.AST
 import Core.CodeGen.Primitives
+import Core.Transform (Transform, transform)
 
 type Env = [Text]
 
 -- | Annotate all lambda declarations with the free variables in their bodies.
-findFree :: [Expr] -> Either String [Expr]
-findFree = Right . runIdentity . traverseAst go
+findFreeVars :: Monad m => [Expr] -> Transform m [Expr]
+findFreeVars = transform . Right . runIdentity . traverseAst go
   where
     go (LamDef (Args as) _ es) = pure $ LamDef (Args as) (freeArgs as es) es
     go e                       = pure e

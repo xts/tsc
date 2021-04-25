@@ -7,13 +7,14 @@ import Data.Map qualified as Map
 import Core.AST qualified as A
 import Core.IR
 import Core.CodeGen.Primitives
+import Core.Transform (Transform, transform)
 
 type Res = (Text, Expr)
 
 -- | Translate from AST to IR, determining memory locations and replacing text
 -- symbols with typed indices.
-resolveSymbols :: [A.Expr] -> Either String [Expr]
-resolveSymbols es = Right $ map (resolve prims) es
+resolveSymbols :: Monad m => [A.Expr] -> Transform m [Expr]
+resolveSymbols = transform . Right . map (resolve prims)
   where
     prims = map (\s -> (s, Prim s)) $ Map.keys primitives
 

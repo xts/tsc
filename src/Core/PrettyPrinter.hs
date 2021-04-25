@@ -2,6 +2,7 @@
 
 module Core.PrettyPrinter
   ( PP
+  , HasPrettyPrint(..)
   , runPP
   , string
   , intercalate
@@ -20,8 +21,11 @@ type PP = StateT Int (Writer Text) ()
 instance IsString PP where
   fromString s = string (T.pack s)
 
-runPP :: PP -> Text
-runPP f = execWriter $ runStateT f 0
+class HasPrettyPrint a where
+  prettyPrint :: a -> String
+
+runPP :: PP -> String
+runPP f = T.unpack $ execWriter $ runStateT f 0
 
 intercalate :: PP -> [PP] -> PP
 intercalate s = sequence_ . intersperse s
@@ -48,3 +52,7 @@ infixl 5 .+
 infix 4 .|
 (.|) :: PP -> PP -> PP
 (.|) a b = align [a, b]
+
+
+instance HasPrettyPrint ByteString where
+  prettyPrint = decodeUtf8

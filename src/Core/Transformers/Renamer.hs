@@ -1,5 +1,5 @@
 module Core.Transformers.Renamer
-  ( rename
+  ( renameSymbols
   ) where
 
 import Control.Monad.Except (Except, runExcept, throwError)
@@ -9,6 +9,7 @@ import Data.Text (pack)
 
 import Core.AST
 import Core.CodeGen.Primitives
+import Core.Transform (Transform, transform)
 
 data Names = Names
   { names :: Map Text Text
@@ -19,8 +20,9 @@ type Bindings = Map Text [Text]
 
 type R a = StateT Names (Except String) a
 
-rename :: [Expr] -> Either String [Expr]
-rename es = runExcept $ evalStateT (mapM (expr mempty) es) $ Names mempty mempty
+renameSymbols :: Monad m => [Expr] -> Transform m [Expr]
+renameSymbols es =
+  transform $ runExcept $ evalStateT (mapM (expr mempty) es) $ Names mempty mempty
 
 expr :: Bindings -> Expr -> R Expr
 expr bs (Sym s)     = Sym <$> bound bs s

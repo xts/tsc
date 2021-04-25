@@ -3,9 +3,10 @@ module Core.Transformers.Desugarer
   ) where
 
 import Core.AST
+import Core.Transform (Transform, transform)
 
-desugar :: [Expr] -> Either String [Expr]
-desugar es = Right $ define es
+desugar :: Monad m => [Expr] -> Transform m [Expr]
+desugar es = transform $ Right $ define es
 
 define :: [Expr] -> [Expr]
 define (FunDef name vs bs : es) =

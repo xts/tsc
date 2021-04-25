@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Core.Decomposer
   ( Image(..)
   , Function(..)
@@ -6,8 +8,11 @@ module Core.Decomposer
   ) where
 
 import Data.Map qualified as Map
+import Data.Text qualified as T
 
 import Core.IR
+import Core.PrettyPrinter (HasPrettyPrint)
+import Core.Transform (Transform, transform)
 
 data Image = Image
   { imFuns :: [Function]
@@ -20,12 +25,12 @@ data Function = Function
   , funBody :: [Expr]
   } deriving (Eq, Show)
 
-decompose :: [Expr] -> Either String Image
+decompose :: Monad m => [Expr] -> Transform m Image
 decompose es =
   let (es', strings) = extractStrings es
       (es'', lambdas)  = extractLambdas es'
       main = Function mainLabel (Args []) es''
-  in Right $ Image (main : lambdas) $ Map.toList strings
+  in transform $ Right $ Image (main : lambdas) $ Map.toList strings
 
 extractLambdas :: [Expr] -> ([Expr], [Function])
 extractLambdas es = runState (traverseIr go es) []
@@ -55,3 +60,15 @@ extractStrings es = runState (traverseIr go es) mempty
 
 mainLabel :: Label
 mainLabel = Label "_scheme_main"
+
+instance HasPrettyPrint Image where
+  prettyPrint (Image fs ss) = intercalate "\n\n" $ map prettyPrint fs ++ map prettyPrint ss
+
+instance HasPrettyPrint Function where
+  prettyPrint (Function (Label name) (Args as) body) =
+    T.unpack name ++ ": (" ++ args ++ ")\n" ++ prettyPrint body
+    where
+      args = intercalate " " $ map T.unpack as
+
+instance HasPrettyPrint (Text, Label) where
+  prettyPrint (s, Label name) = T.unpack name ++ ": " ++ show s

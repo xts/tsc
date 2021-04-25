@@ -1,13 +1,17 @@
 module RenamerSpec (spec) where
 
+import Control.Monad.Except (runExcept)
 import Test.Hspec
 
 import Core.AST
 import Core.Parser
-import Core.Transformers.Renamer qualified as R
+import Core.Transform qualified as T
+import Core.Transformers.Renamer
 
 rename :: Text -> Either String [Expr]
-rename s = R.rename =<< parse s
+rename s = runExcept $ T.evalTransform 3 $ T.do
+  ast <- parse s
+  renameSymbols ast
 
 spec :: Spec
 spec = do
