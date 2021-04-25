@@ -53,6 +53,7 @@ resolution rs s = case find ((== s) . fst) rs of
 
 nextVar :: [Res] -> Int
 nextVar ((_, Var k) : _) = succ k
+nextVar ((_, Arg k) : _) = succ k
 nextVar (e          : es)
   | e == sentinel = 1
   | otherwise     = nextVar es
