@@ -40,21 +40,22 @@ apply e        es = withSavedContext $ do
   callClosure
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
-lambda _ (FreeArgs fs) lab = withSavedContext $ do
+lambda _ (FreeArgs fs) lab = do
   alloc Align16 $ 1 + length fs
-  ins "movq %rax, %rdi"
+  ins "movq %rax, %rbx"
 
   labelAddr lab
-  store (Closure 0)
+  storeVia "%rbx" (Closure 0)
 
   forM_ (zip [1..] fs) $ \(i, e) -> do
     case e of
-      Var j -> load (Stack j)
-      Arg j -> load (Stack j) >> box
+      Var j  -> load (Stack j)
+      Arg j  -> load (Stack j) >> box
+      CArg j -> load (Closure j)
       e' -> throwError $ "internal error: cannot allocate to closure: " <> show e'
-    store (Closure i)
+    storeVia "%rbx" (Closure i)
 
-  ins "movq %rdi, %rax"
+  ins "movq %rbx, %rax"
   tagClosure
 
 _cons :: Text -> Text -> CodeGen ()

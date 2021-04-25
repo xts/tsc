@@ -9,6 +9,7 @@ module Core.CodeGen.Emitters
   , stringPtr
   , load
   , store
+  , storeVia
   , deref
   , callClosure
   , withSavedContext
@@ -77,11 +78,16 @@ load (Stack i)   = ins $ "movq " <> show (-8 * i) <> "(%rbp), %rax"
 load (Param _)   = throwError "Can't load from parameter"
 
 store :: Location -> CodeGen ()
-store (Closure i) = ins $ "movq %rax, " <> show ( 8 * i) <> "(%rdi)"
-store (Stack i)   = ins $ "movq %rax, " <> show (-8 * i) <> "(%rbp)"
+store l@(Closure _) = storeVia "%rdi" l
+store l@(Stack _)   = storeVia "%rbp" l
+store l@(Param _)   = storeVia "%rsp" l
+
+storeVia :: ByteString -> Location -> CodeGen ()
+storeVia reg (Closure i) = ins $ "movq %rax, " <> show ( 8 * i) <> "(" <> reg <> ")"
+storeVia reg (Stack i)   = ins $ "movq %rax, " <> show (-8 * i) <> "(" <> reg <> ")"
 -- The first of the callee's stack slots is used for the return address, the
 -- second for the callee's rbp-save, and so parameters start at stack slot 3.
-store (Param i)   = ins $ "movq %rax, " <> show (-8 * (i + 2)) <> "(%rsp)"
+storeVia reg (Param i)   = ins $ "movq %rax, " <> show (-8 * (i + 2)) <> "(" <> reg <> ")"
 
 callClosure :: CodeGen ()
 callClosure = do
