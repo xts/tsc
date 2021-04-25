@@ -12,3 +12,8 @@
 
 (define >= (x y)
   (not (< x y)))
+
+(define length (xs)
+  (if (eq xs ())
+      0
+      (+ 1 (length (cdr xs)))))
