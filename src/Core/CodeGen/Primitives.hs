@@ -5,7 +5,7 @@ module Core.CodeGen.Primitives
 
 import Control.Monad.Except (throwError)
 import Data.Map qualified as Map
-import Prelude hiding (error, print)
+import Prelude hiding (and, error, print)
 
 import Core.IR
 import Core.CodeGen.Emitters
@@ -21,6 +21,7 @@ primitives = fromList
   , ("+", add)
   , ("-", sub)
   , ("*", mul)
+  , ("and", and)
   , ("<", lessThan)
   , ("set!", set)
   , ("read-char", readChar)
@@ -63,6 +64,16 @@ mul es = do
     ins "movq %rax, (%rsp)"
   ins "popq %rax"
   tagFixnum
+
+and :: [Expr] -> CodeGen ()
+and es = do
+  endLabel   <- funLabel
+  forM_ es $ \e -> do
+    expr e
+    ins "cmpq $0x6f, %rax"
+    ins $ "je " <> endLabel
+  true
+  label endLabel
 
 lessThan :: [Expr] -> CodeGen ()
 lessThan [a, b] = do
