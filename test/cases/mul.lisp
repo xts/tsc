@@ -1,0 +1,6 @@
+(display (*)) (newline)
+(display (* 2 2)) (newline)
+(display (* 1 2 3)) (newline)
+(display (* -1 1)) (newline)
+(display (* -1 -1)) (newline)
+(display (* 42 0)) (newline)

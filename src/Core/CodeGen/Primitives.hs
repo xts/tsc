@@ -20,6 +20,7 @@ primitives = fromList
   [ ("display", display)
   , ("+", add)
   , ("-", sub)
+  , ("*", mul)
   , ("<", lessThan)
   , ("set!", set)
   , ("read-char", readChar)
@@ -49,6 +50,17 @@ sub (e : es) = do
     ins "subq %rax, (%rsp)"
   ins "popq %rax"
 sub [] = throwError "- expects at least one argument"
+
+mul :: [Expr] -> CodeGen ()
+mul es = do
+  ins "pushq $1"
+  forM_ es $ \e -> do
+    expr e
+    untagFixnum
+    ins "mulq (%rsp)"
+    ins "movq %rax, (%rsp)"
+  ins "popq %rax"
+  tagFixnum
 
 lessThan :: [Expr] -> CodeGen ()
 lessThan [a, b] = do

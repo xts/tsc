@@ -20,6 +20,8 @@ module Core.CodeGen.Emitters
   , untagClosure
   , tagChar
   , untagChar
+  , tagFixnum
+  , untagFixnum
   , labelAddr
   , string
   , allocStack
@@ -131,6 +133,12 @@ tagChar = do
 
 untagChar :: CodeGen ()
 untagChar = ins "shrq $8, %rax"
+
+tagFixnum :: CodeGen ()
+tagFixnum = ins "shl $2, %rax"
+
+untagFixnum :: CodeGen ()
+untagFixnum = ins "shr $2, %rax"
 
 labelAddr :: Label -> CodeGen ()
 labelAddr (Label l) = ins $ "leaq " <> encodeUtf8 l <> "(%rip), %rax"
