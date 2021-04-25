@@ -13,7 +13,7 @@ type Env = [Text]
 
 -- | Annotate all lambda declarations with the free variables in their bodies.
 findFreeVars :: Monad m => [Expr] -> Transform m [Expr]
-findFreeVars = transform . Right . runIdentity . traverseAst go
+findFreeVars = transform . Right . runIdentity . transformAst go
   where
     go (LamDef (Args as) _ es) = pure $ LamDef (Args as) (freeArgs as es) es
     go e                       = pure e

@@ -33,7 +33,7 @@ decompose es =
   in transform $ Right $ Image (main : lambdas) $ Map.toList strings
 
 extractLambdas :: [Expr] -> ([Expr], [Function])
-extractLambdas es = runState (traverseIr go es) []
+extractLambdas es = runState (transformIr go es) []
   where
     go :: Expr -> State [Function] Expr
     go (LamDef as fs es') = do
@@ -44,7 +44,7 @@ extractLambdas es = runState (traverseIr go es) []
     go e = pure e
 
 extractStrings :: [Expr] -> ([Expr], Map Text Label)
-extractStrings es = runState (traverseIr go es) mempty
+extractStrings es = runState (transformIr go es) mempty
   where
     go :: Expr -> State (Map Text Label) Expr
     go (Lit (String (Left s))) = Lit . String . Right <$> label s

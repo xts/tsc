@@ -5,7 +5,7 @@ module Core.IR
   , Args(..)
   , Label(..)
   , Literal(..)
-  , traverseIr
+  , transformIr
   , prettyPrint
   ) where
 
@@ -14,6 +14,8 @@ import Prelude hiding (intercalate)
 import Core.AST (Args(..), Label(..), Literal(..))
 import Core.PrettyPrinter
 
+-- | Intermediate representation where all text symbols have been resolved to
+-- arguments, closure arguments, indices, primitives, and values.
 data Expr
   = Nil
   | Arg Int
@@ -34,8 +36,10 @@ newtype FreeArgs = FreeArgs { unfreeArgs :: [Expr] }
 data Binding = Binding Int Expr
   deriving (Eq, Show)
 
-traverseIr :: Monad m => (Expr -> m Expr) -> [Expr] -> m [Expr]
-traverseIr h = mapM g
+-- | Perform a depth first transformation of the IR, applying the given function
+-- at each node.
+transformIr :: Monad m => (Expr -> m Expr) -> [Expr] -> m [Expr]
+transformIr h = mapM g
   where
     g e = go e >>= h
     go (List es)         = List <$> mapM g es

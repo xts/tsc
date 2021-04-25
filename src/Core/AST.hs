@@ -6,7 +6,7 @@ module Core.AST
     , Binding(..)
     , Args(..)
     , FreeArgs(..)
-    , traverseAst
+    , transformAst
     , prettyPrint
     ) where
 
@@ -14,6 +14,8 @@ import Prelude hiding (intercalate)
 
 import Core.PrettyPrinter
 
+-- | Abstract syntax tree for our lispy language. Accommodates the initial
+-- parsed form and limited annotations such as free variables.
 data Expr
   = Nil
   | Sym Text
@@ -26,6 +28,7 @@ data Expr
   | VarDef Name Expr
   deriving (Eq, Show)
 
+-- | Literal values. String permits either the raw data or a label.
 data Literal
   = Bool Bool
   | Char Char
@@ -47,8 +50,10 @@ newtype Args = Args { unArgs :: [Text] }
 newtype FreeArgs = FreeArgs { unFreeArgs :: [Text] }
   deriving (Eq, Show)
 
-traverseAst :: Monad m => (Expr -> m Expr) -> [Expr] -> m [Expr]
-traverseAst h = mapM g
+-- | Perform a depth first transformation of the AST, applying the given
+-- function at each node.
+transformAst :: Monad m => (Expr -> m Expr) -> [Expr] -> m [Expr]
+transformAst h = mapM g
   where
     g e = go e >>= h
     go (List es)         = List <$> mapM g es

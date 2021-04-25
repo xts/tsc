@@ -40,7 +40,7 @@ entryFunction = do
 
 reservedStackWords :: Function -> Int
 reservedStackWords (Function _ (Args as) es) =
-  length as + execState (traverseIr go es) 0
+  length as + execState (transformIr go es) 0
   where
     go :: Expr -> State Int Expr
     go e@(Let vs _) = (forM_ vs $ \(Binding i _) -> modify (`max` i)) $> e
