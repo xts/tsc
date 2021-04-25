@@ -1,0 +1,6 @@
+(display (eq #t #t)) (newline)
+(display (eq #t #f)) (newline)
+(display (= 1 2)) (newline)
+(display (= 3 3)) (newline)
+(display (eq "hello" "hello")) (newline)
+(display (eq "hello" "world")) (newline)

@@ -22,6 +22,8 @@ primitives = fromList
   , ("-", sub)
   , ("*", mul)
   , ("and", and)
+  , ("eq", eq)
+  , ("=", eq)
   , ("<", lessThan)
   , ("set!", set)
   , ("read-char", readChar)
@@ -130,3 +132,18 @@ charToNumber [e] = do
   untagChar
   tagFixnum
 charToNumber _ = throwError "error: char->number takes one argument"
+
+eq :: [Expr] -> CodeGen ()
+eq [a, b] = do
+  labEnd <- funLabel
+  expr a
+  ins "pushq %rax"
+  expr b
+  ins "popq %rdx"
+  ins "movq %rax, %rbx"
+  true
+  ins "cmpq %rbx, %rdx"
+  ins $ "je " <> labEnd
+  false
+  label labEnd
+eq _ = throwError $ "error: eq takes two arguments"
