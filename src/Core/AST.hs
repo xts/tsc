@@ -80,7 +80,7 @@ instance HasPrettyPrint [Expr] where
           letBinding (Binding s e) = "(" .+ string s .+ " " .+ go e .+ ")"
 
       go (LamDef (Args as) (FreeArgs fs) es) =
-          "(lambda (" .+ intercalate " " (map string as) .+ ")" .+ " [" .+ intercalate " " (map string fs) .+ "]"
+          "(lambda (" .+ spaced string as .+ ")" .+ " [" .+ spaced string fs .+ "]"
         .| "  " .+ align (map go es) .+ ")"
 
       go (If p t f) =
@@ -88,5 +88,5 @@ instance HasPrettyPrint [Expr] where
         .| "      " .+ align [go t, go f] .+ ")"
 
       go (FunDef s (Args as) es) =
-          "(define " .+ string s .+ " (" .+ intercalate " " (map string as) .+ ")"
+          "(define " .+ string s .+ " (" .+ spaced string as .+ ")"
         .| "  " .+ align (map go es) .+ ")"

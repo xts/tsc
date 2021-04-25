@@ -5,6 +5,7 @@ module Core.PrettyPrinter
   , HasPrettyPrint(..)
   , runPP
   , string
+  , spaced
   , intercalate
   , align
   , newline
@@ -33,6 +34,9 @@ intercalate s = sequence_ . intersperse s
 string :: Text -> PP
 string s = modify (+ T.length s) >> tell s
 
+spaced :: (a -> PP) -> [a] -> PP
+spaced f = intercalate " " . map f
+
 newline :: PP
 newline = put 0 >> tell "\n"
 
@@ -52,7 +56,6 @@ infixl 5 .+
 infix 4 .|
 (.|) :: PP -> PP -> PP
 (.|) a b = align [a, b]
-
 
 instance HasPrettyPrint ByteString where
   prettyPrint = decodeUtf8
