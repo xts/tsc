@@ -1,6 +1,6 @@
 module Core.Transform where
 
-import Control.Monad.Trans.Except (except, throwE)
+import Control.Monad.Except (liftEither, throwError)
 import Prelude hiding (return, (>>=), (>>))
 
 import Core.PrettyPrinter (HasPrettyPrint(..))
@@ -32,7 +32,7 @@ return a = Transform $ \s -> pure (a, s)
 m >>= k = Transform $ \s -> do
   (a, s') <- runTransform m s
   if s' == 0
-    then throwE (prettyPrint a)
+    then throwError (prettyPrint a)
     else runTransform (k a) (pred s')
 
 -- | Our faux-bind, throwing when we run out of credits.
@@ -42,5 +42,5 @@ m >> k = m >>= (\_ -> k)
 -- | Create a Transform action out of an Either.
 transform :: Monad m => Either String a -> Transform m a
 transform m = Transform $ \s -> do
-  a <- except m
+  a <- liftEither m
   pure (a, s)
