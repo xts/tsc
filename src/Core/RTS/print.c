@@ -63,3 +63,7 @@ void print(void* value) {
         printf("Invalid value: %p", value);
     }
 }
+
+char read_char() {
+    return getc(stdin);
+}

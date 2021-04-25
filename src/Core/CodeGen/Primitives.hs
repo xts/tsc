@@ -5,7 +5,7 @@ module Core.CodeGen.Primitives
 
 import Control.Monad.Except (throwError)
 import Data.Map qualified as Map
-import Prelude hiding (print)
+import Prelude hiding (error, print)
 
 import Core.IR
 import Core.CodeGen.Emitters
@@ -22,27 +22,14 @@ primitives = fromList
   , ("-", sub)
   , ("<", lessThan)
   , ("set!", set)
+  , ("read-char", readChar)
+  , ("error", error)
   ]
 
 display :: [Expr] -> CodeGen ()
 display [e] = do
   expr e
-  ins "pushq %rsi"      -- save heap ptr.
-  ins "pushq %rdi"      -- save closure ptr.
-  ins "movq %rax, %rdi" -- argument to print.
-
-  ins "pushq %rbp"      -- align stack to 16 bytes.
-  ins "movq %rsp, %rbp"
-  ins "subq $8, %rsp"
-  ins "andq $0xfffffffffffffff0, %rsp"
-
-  ins "callq _print"
-
-  ins "movq %rbp, %rsp" -- restore stack.
-  ins "popq %rbp"
-
-  ins "popq %rdi"       -- restore closure ptr.
-  ins "popq %rsi"       -- restore heap ptr.
+  callC "_print"
 display es = throwError $ "display expects 1 parameter, received " <> show (length es)
 
 add :: [Expr] -> CodeGen ()
@@ -89,4 +76,17 @@ set es = throwError $ "set! expects 2 arguments, received " <> show (length es)
 addr :: Expr -> CodeGen ()
 addr (Var i)  = load (Stack i)
 addr (CArg i) = load (Closure i)
-addr e        = error $ "Don't know how to find the address of " <> show e
+addr e        = throwError $ "Don't know how to find the address of " <> show e
+
+readChar :: [Expr] -> CodeGen ()
+readChar [] = do
+  callC "_read_char"
+  tagChar
+readChar _ = throwError "read-char takes no arguments"
+
+error :: [Expr] -> CodeGen ()
+error [e] = do
+  display [e]
+  ins "movq $1, %rdi"
+  callC "_exit"
+error _ = throwError "error: error currently only takes one argument"

@@ -18,12 +18,15 @@ module Core.CodeGen.Emitters
   , epilogue
   , tagClosure
   , untagClosure
+  , tagChar
+  , untagChar
   , labelAddr
   , string
   , allocStack
   , freeStack
   , alloc
   , box
+  , callC
   , ins
   , sep
   , dir
@@ -121,6 +124,14 @@ tagClosure = ins "orq $6, %rax"
 untagClosure :: CodeGen ()
 untagClosure = ins "subq $6, %rax"
 
+tagChar :: CodeGen ()
+tagChar = do
+  ins "shlq $8, %rax"
+  ins "orq $0xf, %rax"
+
+untagChar :: CodeGen ()
+untagChar = ins "shrq $8, %rax"
+
 labelAddr :: Label -> CodeGen ()
 labelAddr (Label l) = ins $ "leaq " <> encodeUtf8 l <> "(%rip), %rax"
 
@@ -147,6 +158,25 @@ box = do
   alloc Align8 1
   ins "popq %rdx"
   ins "movq %rdx, (%rax)"
+
+callC :: Text -> CodeGen ()
+callC sym = do
+  ins "pushq %rsi"      -- save heap ptr.
+  ins "pushq %rdi"      -- save closure ptr.
+  ins "movq %rax, %rdi" -- argument to function.
+
+  ins "pushq %rbp"      -- align stack to 16 bytes.
+  ins "movq %rsp, %rbp"
+  ins "subq $8, %rsp"
+  ins "andq $0xfffffffffffffff0, %rsp"
+
+  ins $ "callq " <> encodeUtf8 sym
+
+  ins "movq %rbp, %rsp" -- restore stack.
+  ins "popq %rbp"
+
+  ins "popq %rdi"       -- restore closure ptr.
+  ins "popq %rsi"       -- restore heap ptr.
 
 allocStack :: Int -> CodeGen ()
 allocStack 0         = pure ()
