@@ -23,6 +23,7 @@ module Core.CodeGen.Emitters
   , allocStack
   , freeStack
   , alloc
+  , box
   , ins
   , sep
   , dir
@@ -139,6 +140,13 @@ alloc a n = do
     align Align16 = do
       ins "addq $0x8, %rsi"
       ins "andq $0xfffffffffffffff0, %rsi"
+
+box :: CodeGen ()
+box = do
+  ins "pushq %rax"
+  alloc Align8 1
+  ins "popq %rdx"
+  ins "movq %rdx, (%rax)"
 
 allocStack :: Int -> CodeGen ()
 allocStack 0         = pure ()

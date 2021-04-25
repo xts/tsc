@@ -47,8 +47,11 @@ lambda _ (FreeArgs fs) lab = withSavedContext $ do
   labelAddr lab
   store (Closure 0)
 
-  forM_ (zip [1..] fs) $ \(i, j) -> do
-    load (Stack j)
+  forM_ (zip [1..] fs) $ \(i, e) -> do
+    case e of
+      Var j -> load (Stack j)
+      Arg j -> load (Stack j) >> box
+      e' -> throwError $ "internal error: cannot allocate to closure: " <> show e'
     store (Closure i)
 
   ins "movq %rdi, %rax"

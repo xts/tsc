@@ -34,7 +34,7 @@ resolve rs (A.LamDef (A.Args as) (A.FreeArgs fs) es) =
   let enumWith c xs = zipWith (\x n -> (x, c n)) xs [1..]
       as'  = enumWith Arg as
       fs'  = enumWith CArg fs
-      free = FreeArgs $ map (resolutionVar rs) fs
+      free = FreeArgs $ map (resolution rs) fs
       -- Insert a sentinel to evaluate the body with a fresh let binding stack.
       body = map (resolve $ as' <> fs' <> (sentinel : rs)) es
   in LamDef (Args as) free body
@@ -50,11 +50,6 @@ resolution :: [Res] -> Text -> Expr
 resolution rs s = case find ((== s) . fst) rs of
   Just (_, e) -> e
   _           -> error $ "failed to resolve " <> show s
-
-resolutionVar :: [Res] -> Text -> Int
-resolutionVar rs s = case resolution rs s of
-  Var i -> i
-  e     -> error $ "not a variable: " <> show s <> " is " <> show e
 
 nextVar :: [Res] -> Int
 nextVar ((_, Var k) : _) = succ k

@@ -28,7 +28,7 @@ data Expr
   | If Expr Expr Expr
   deriving (Eq, Show)
 
-newtype FreeArgs = FreeArgs { unfreeArgs :: [Int] }
+newtype FreeArgs = FreeArgs { unfreeArgs :: [Expr] }
   deriving (Eq, Show)
 
 data Binding = Binding Int Expr
