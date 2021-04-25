@@ -58,24 +58,6 @@ lambda _ (FreeArgs fs) lab = do
   ins "movq %rbx, %rax"
   tagClosure
 
-_cons :: Text -> Text -> CodeGen ()
-_cons a d = do
-  ins $ "movq " <> encodeUtf8 a <> ", 0(%rsi)" -- set car
-  ins $ "movq " <> encodeUtf8 d <> ", 0(%rsi)" -- set cdr
-  ins "movq %rsi, %rax"                        -- set eax to rsi | 1
-  ins "orq %eax, 1"
-  ins "addq $16, %rsi"                         -- bump heap ptr
-
--- | Read the first element of a pair. This would normally be at offset 0, but
--- since the pair object is tagged with 0xb001, our offset is at -1.
-_car :: CodeGen ()
-_car = ins "leaq -1(%rax), %rax"
-
--- | Read the second element of a pair. This would normally be at offset 8, but
--- since the pair object is tagged with 0xb001, our offset is at 7.
-_cdr :: CodeGen ()
-_cdr = ins "leaq 7(%rax), %rax)"
-
 ifForm :: Expr -> Expr -> Expr -> CodeGen ()
 ifForm p t f = do
   labFalse <- funLabel

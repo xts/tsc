@@ -34,6 +34,10 @@ int is_string(void *value) {
     return ((int)value & 0x7) == 0x3;
 }
 
+int is_pair(void *value) {
+    return ((int)value & 0x7) == 0x1;
+}
+
 int from_fixnum(void *value) {
     return (int)(value) >> 2;
 }
@@ -44,6 +48,32 @@ char from_char(void *value) {
 
 const char *from_string(void *value) {
     return (const char *)((uintptr_t)(value) & ~7);
+}
+
+void print(void *value);
+
+void print_pair(void *value, int in_pair) {
+    uintptr_t *p = (uintptr_t*)value;
+    p = (uintptr_t *)((long unsigned)p & ~1);
+    void *car = (void *)p[0];
+    void *cdr = (void *)p[1];
+
+    if (!in_pair) {
+        printf("(");
+    }
+    print(car);
+    if (is_pair(cdr)) {
+        printf(" ");
+        print_pair(cdr, 1);
+    }
+    else if (is_nil(cdr)) {
+        printf(")");
+    }
+    else {
+        printf(" . ");
+        print(cdr);
+        printf(")");
+    }
 }
 
 void print(void* value) {
@@ -59,6 +89,8 @@ void print(void* value) {
         printf("()");
     } else if (is_string(value)) {
         printf("%s", from_string(value));
+    } else if (is_pair(value)) {
+        print_pair(value, 0);
     } else {
         printf("Invalid value: %p", value);
     }

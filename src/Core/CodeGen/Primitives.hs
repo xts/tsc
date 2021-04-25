@@ -25,6 +25,9 @@ primitives = fromList
   , ("eq", eq)
   , ("=", eq)
   , ("<", lessThan)
+  , ("cons", cons)
+  , ("car", car)
+  , ("cdr", cdr)
   , ("set!", set)
   , ("read-char", readChar)
   , ("error", error)
@@ -147,3 +150,31 @@ eq [a, b] = do
   false
   label labEnd
 eq _ = throwError $ "error: eq takes two arguments"
+
+cons :: [Expr] -> CodeGen ()
+cons [a, d] = do
+  expr a
+  ins "pushq %rax"
+  expr d
+  ins "pushq %rax"
+  alloc Align8 2
+  ins "popq %rdx"
+  ins "movq %rdx, 8(%rax)"
+  ins "popq %rdx"
+  ins "movq %rdx, 0(%rax)"
+  tagPair
+cons _ = throwError "error: cons takes two arguments"
+
+car :: [Expr] -> CodeGen ()
+car [e] = do
+  expr e
+  untagPair
+  deref
+car _ = throwError "error: car takes one argument"
+
+cdr :: [Expr] -> CodeGen ()
+cdr [e] = do
+  expr e
+  untagPair
+  ins "movq 8(%rax), %rax"
+cdr _ = throwError "error: cdr takes one argument"
