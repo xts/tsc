@@ -42,10 +42,10 @@ form = openBrace *> body <* closeBrace
 
 -- | A definition for a function which takes arguments, or variable which does not.
 defForm :: Parser Expr
-defForm = (keyword "define" *> sym) >>= \name -> try (funDef name) <|> varDef name
+defForm = keyword "define" *> (funDef <|> varDef)
   where
-    funDef name = FunDef name <$> (openBrace *> (Args <$> many sym) <* closeBrace) <*> some expr
-    varDef name = VarDef name <$> expr
+    funDef = FunDef <$> (openBrace *> sym) <*> (Args <$> many sym <* closeBrace) <*> some expr
+    varDef = VarDef <$> sym <*> expr
 
 -- | If is a conditional expression with an optional else.
 ifForm :: Parser Expr

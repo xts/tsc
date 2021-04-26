@@ -26,12 +26,12 @@ findTests :: IO [(String, Text, String)]
 findTests = do
   testNames <- sort . map dropExtension . filter isTest <$> listDirectory base
   forM testNames $ \name -> do
-    source <- strip <$> BS.readFile (base ++ name ++ ".lisp")
+    source <- strip <$> BS.readFile (base ++ name ++ ".scm")
     result <- strip <$> BS.readFile (base ++ name ++ ".exp")
     pure (name, decodeUtf8 source, decodeUtf8 result)
   where
     base = "test/cases/"
-    isTest file = takeExtension file == ".lisp"
+    isTest file = takeExtension file == ".scm"
 
 spec :: Spec
 spec = do
