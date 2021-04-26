@@ -28,6 +28,7 @@ primitives = fromList
   , ("cons", cons)
   , ("car", car)
   , ("cdr", cdr)
+  , ("list", list)
   , ("set!", set)
   , ("read-char", readChar)
   , ("error", error)
@@ -178,3 +179,29 @@ cdr [e] = do
   untagPair
   ins "movq 8(%rax), %rax"
 cdr _ = throwError "error: cdr takes one argument"
+
+list :: [Expr] -> CodeGen ()
+list [] = nil
+list es = do
+  -- Allocate space for all cells.
+  alloc Align8 $ 2 * length es
+  ins "movq %rax, %rdx"
+
+  -- Compute each element and place them in their respective car slots.
+  forM_ (zip es [0..]) $ \(e, i) -> do
+    expr e
+    storeVia "%rdx" (Closure $ 2 * i)
+
+  -- Point each cdr to the next cell.
+  ins "movq %rdx, %rax"
+  tagPair
+  forM_ [0..length es - 2] $ \i -> do
+    ins "addq $16, %rax"
+    storeVia "%rdx" (Closure $ 2 * i + 1)
+
+  -- Terminate the last cell.
+  nil
+  storeVia "%rdx" (Closure $ 2 * length es - 1)
+
+  ins "movq %rdx, %rax"
+  tagPair
