@@ -42,3 +42,9 @@
         (go (insert (car xs) acc) (cdr xs))))
 
   (go () xs))
+
+;; Map F across all elements of XS.
+(define mapcar (f xs)
+  (if (eq xs ())
+      ()
+      (cons (f (car xs)) (mapcar f (cdr xs)))))
