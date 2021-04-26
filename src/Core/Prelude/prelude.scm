@@ -17,3 +17,10 @@
   (if (eq xs ())
       0
       (+ 1 (length (cdr xs)))))
+
+(define reverse (xs)
+  (define go (acc xs)
+    (if (eq xs ())
+        acc
+        (go (cons (car xs) acc) (cdr xs))))
+  (go () xs))
