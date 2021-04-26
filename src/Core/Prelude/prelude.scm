@@ -16,6 +16,12 @@
 (define (null? xs)
   (eq xs ()))
 
+;; Map F across all elements of XS.
+(define (map f xs)
+  (if (null? xs)
+      ()
+      (cons (f (car xs)) (map f (cdr xs)))))
+
 ;; Find the length of the list XS.
 (define (length xs)
   (if (null? xs)
@@ -46,8 +52,3 @@
 
   (go () xs))
 
-;; Map F across all elements of XS.
-(define (mapcar f xs)
-  (if (null? xs)
-      ()
-      (cons (f (car xs)) (mapcar f (cdr xs)))))
