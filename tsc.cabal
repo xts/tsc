@@ -55,6 +55,7 @@ library
     Core.Transform,
     Core.Transformers.Desugarer,
     Core.Transformers.FreeFinder,
+    Core.Transformers.Lifter,
     Core.Transformers.Renamer,
     Core.Transformers.Resolver,
   build-depends:

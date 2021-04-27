@@ -4,23 +4,26 @@ module Core.CodeGen.Expr
   ) where
 
 import Control.Monad.Except (throwError)
+import Data.Text (unpack)
 
 import Core.IR
 import Core.CodeGen.Emitters
 import Core.CodeGen.Monad
 
 expr :: Expr -> CodeGen ()
-expr Nil           = nil
-expr (Lit lit)     = literal lit
-expr (List (x:xs)) = apply x xs
-expr (Let vs es)   = letForm vs es
-expr (Arg i)       = load (Stack i)
-expr (Var i)       = load (Stack i) >> deref
-expr (CArg i)      = load (Closure i) >> deref
-expr (Prim _)      = throwError "Primitives are not first class objects"
-expr (LamDec a f l)= lambda a f l
-expr (If p t f)    = ifForm p t f
-expr e             = throwError $ "Unable to lower " <> show e
+expr (Arg i)            = load (Stack i)
+expr (CArg i)           = load (Closure i) >> deref
+expr (If p t f)         = ifForm p t f
+expr (LamDec a f l)     = lambda a f l
+expr (Let vs es)        = letForm vs es
+expr (List (Prim s:es)) = applyPrimitive s es
+expr (List (e:es))      = apply e es
+expr (Lit lit)          = literal lit
+expr (Prim s)           = throwError $
+  "error: indefinite arity primitive cannot be passed as an argument: " <> show s
+expr (Var i)            = load (Stack i) >> deref
+expr Nil                = nil
+expr e                  = throwError $ "Unable to lower " <> show e
 
 literal :: Literal -> CodeGen ()
 literal (Fixnum k)   = fixnum k
@@ -31,8 +34,7 @@ literal (String (Right l)) = stringPtr l
 literal (String (Left _))  = throwError "String should have been labelized"
 
 apply :: Expr -> [Expr] -> CodeGen ()
-apply (Prim s) es = withComment ("Primitive " <> s) $ primitive s >>= ($ es)
-apply e        es = withComment ("Apply " <> show e) $ withSavedContext $ do
+apply e es = withComment ("Apply " <> show e) $ withSavedContext $ do
   withComment "Evaluate operator" $ do
     expr e
     ins "pushq %rax"
@@ -46,6 +48,14 @@ apply e        es = withComment ("Apply " <> show e) $ withSavedContext $ do
 
   ins "popq %rax"
   callClosure
+
+applyPrimitive :: Text -> [Expr] -> CodeGen ()
+applyPrimitive name es = withComment ("Primitive " <> name) $ lookupPrimitive name >>= \case
+  Just (Primitive emitter Indefinite) -> emitter es
+  Just (Primitive emitter (Arity n))
+    | n == length es -> emitter es
+    | otherwise      -> throwError $ "error: " <> unpack name <> " expects " <> show n <> " arguments"
+  Nothing -> throwError $ "internal error: no such primitive " <> show name
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
 lambda _ (FreeArgs fs) lab = withComment ("Allocate closure for " <> unLabel lab) $ do

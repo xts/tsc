@@ -1,6 +1,7 @@
 module Core.CodeGen.Monad
   ( CodeGen
-  , Primitive
+  , Arity(..)
+  , Primitive(..)
   , runCodeGen
   , context
   , setContext
@@ -20,7 +21,13 @@ import Prelude hiding (State)
 
 import Core.IR
 
-type Primitive = [Expr] -> CodeGen ()
+data Arity = Arity Int | Indefinite
+
+data Primitive = Primitive
+  { pEmitter :: [Expr] -> CodeGen ()
+  , pArity   :: Arity
+  }
+
 newtype Primitives = Primitives { unPrimitives :: Map Text Primitive }
 
 data GenState = GenState

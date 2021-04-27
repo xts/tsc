@@ -41,7 +41,7 @@
 
 ;; Reverse list XS.
 (define (reverse xs)
-  (fold-left (lambda (x acc) (cons x acc)) () xs))
+  (fold-left cons () xs))
 
 ;; Sort a numeric list XS with insertion sort.
 (define (sort xs)

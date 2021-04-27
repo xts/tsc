@@ -14,6 +14,7 @@ import Core.Prelude
 import Core.Transform qualified as T
 import Core.Transformers.Desugarer
 import Core.Transformers.FreeFinder
+import Core.Transformers.Lifter
 import Core.Transformers.Renamer
 import Core.Transformers.Resolver
 
@@ -32,6 +33,7 @@ compile options = runExceptT $ do
      T.>>= renameSymbols  -- Give each symbol a unique name, removing shadow bindings.
      T.>>= findFreeVars   -- Annotate each lambda with the free variables in its body.
      T.>>= resolveSymbols -- Resolve text symbols to typed memory locations.
+     T.>>= liftPrimitives -- Lift primitives to closures where necessary.
      T.>>= decompose      -- Split the program into a list of functions and associated data.
      T.>>= lowerToAsm     -- Generate assembly code.
      T.>>= T.return       -- (Seemingly redundant, but spends a credit and enables asm output.)
