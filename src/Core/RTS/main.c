@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define PAGE_SIZE 4096
 #define HEAP_PAGES 64  /* Heap memory to allocate, in pages. */
@@ -69,11 +70,28 @@ void page_fault_handler(int signo, siginfo_t *info, void *context) {
     exit(11);
 }
 
+extern uintptr_t *scheme_heap_max;
+
+void print_stats(void *heap, void *stack) {
+    /* Peak heap is accurate and stored by the scheme code on exit. */
+    unsigned long bytes_used = (void *)scheme_heap_max - heap;
+    printf("Heap memory used:  %8ld bytes (%7ld words)\n", bytes_used, bytes_used / 8);
+
+    /* Peak stack usage is guessed at by finding the shallowest non-zero value. */
+    uintptr_t *p = (uintptr_t *)stack;
+    void *stack_top = stack + STACK_PAGES * PAGE_SIZE;
+    while (!*p++ && (void *)p < stack_top);
+    bytes_used = stack_top - (void *)p;
+    printf("Stack memory used: %8ld bytes (%7ld words)\n", bytes_used, bytes_used / 8);
+}
+
 int scheme_entry(void *heap, void *stack);
 
-int main() {
+int main(int argc, char *argv[]) {
     /* Allocate heap and stack, with an overflow trap in between. */
-    void *mem = malloc(PAGE_SIZE * (HEAP_PAGES + STACK_PAGES + 2));
+    const int size = (HEAP_PAGES + STACK_PAGES + 2) * PAGE_SIZE;
+    void *mem = malloc(size);
+    memset(mem, 0, sizeof(mem));
     void *heap = align(mem, PAGE_SIZE);
     g_moat = heap + PAGE_SIZE * HEAP_PAGES;
     void *stack = g_moat + PAGE_SIZE;
@@ -89,5 +107,12 @@ int main() {
     install_page_fault_handler(page_fault_handler);
 
     /* Start program. */
-    return scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE);
+    int ret = scheme_entry(heap, stack + STACK_PAGES * PAGE_SIZE);
+
+    /* Optionally print statistics. */
+    if (argc > 1 && !strcmp(argv[1], "--stats")) {
+        print_stats(heap, stack);
+    }
+
+    return ret;
 }

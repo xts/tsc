@@ -17,6 +17,7 @@ lowerToAsm (Image fs ss) = transform $ runCodeGen primitives $ do
   mapM_ (uncurry string) ss
   mapM_ function fs
   entryFunction
+  globalData
 
 -- | Emit a function prologue, its body, and an epilogue.
 function :: Function -> CodeGen ()
@@ -39,9 +40,15 @@ entryFunction = do
   ins "pushq %rbp"      -- Save our original stack pointer.
   ins "movq %rsp, %rbp"
   ins $ "callq " <> encodeUtf8 (unLabel mainLabel)
+  ins "movq %rsi, _scheme_heap_max(%rip)"
   ins "popq %rsp"       -- Restore our original stack pointer.
   ins "xorq %rax, %rax" -- Return 0 to the OS.
   epilogue
+
+globalData :: CodeGen ()
+globalData = do
+  dir "data"
+  global "_scheme_heap_max"
 
 -- | Determine hov much pre-allocated stack space the given function needs. Our
 -- calling convention dictates that we need space for each of our arguments, plus

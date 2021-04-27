@@ -18,6 +18,7 @@ module Core.CodeGen.Emitters
   , define
   , prologue
   , epilogue
+  , global
   , tagClosure
   , untagClosure
   , tagChar
@@ -133,6 +134,11 @@ epilogue = do
   freeStack =<< reserved
   ins "popq %rbp"
   ins "retq"
+
+global :: Text -> CodeGen ()
+global sym = do
+  define sym
+  dir "int 0"
 
 tagClosure :: CodeGen ()
 tagClosure = ins "orq $6, %rax"
