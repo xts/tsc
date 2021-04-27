@@ -23,7 +23,8 @@ data Expr
   | Prim Text
   | Var Int
   | Lit Literal
-  | List [Expr]
+  | App [Expr]
+  | TApp [Expr]
   | Let [Binding] [Expr]
   | LamDef Args FreeArgs [Expr]
   | LamDec Args FreeArgs Label
@@ -42,7 +43,8 @@ transformIr :: Monad m => (Expr -> m Expr) -> [Expr] -> m [Expr]
 transformIr h = mapM g
   where
     g e = go e >>= h
-    go (List es)         = List <$> mapM g es
+    go (App es)          = App <$> mapM g es
+    go (TApp es)         = TApp <$> mapM g es
     go (Let bs es)       = Let <$> mapM (\(Binding i e) -> Binding i <$> g e) bs <*> mapM g es
     go (LamDef as fs es) = LamDef as fs <$> mapM g es
     go (If p t f)        = If <$> g p <*> g t <*> g f
@@ -63,7 +65,8 @@ instance HasPrettyPrint [Expr] where
       go (Lit (Char c)) = show c
       go (Lit (String (Left s))) = show s
       go (Lit (String (Right (Label l)))) = "%L" .+ string l
-      go (List es) = "(" .+ intercalate " " (map go es) .+ ")"
+      go (App es) = "(" .+ intercalate " " (map go es) .+ ")"
+      go (TApp es) = "(" .+ intercalate " " (map go es) .+ ")*"
 
       go (Let vs es) =
           "(let (" .+ align (map letBinding vs) .+ ")"

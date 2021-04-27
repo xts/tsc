@@ -40,7 +40,7 @@ resolve rs (A.LamDef (A.Args as) (A.FreeArgs fs) es) =
   in LamDef (Args as) free body
 
 -- Recurse.
-resolve rs (A.List es)  = List $ map (resolve rs) es
+resolve rs (A.List es)  = App $ map (resolve rs) es
 resolve rs (A.If p t f) = If (resolve rs p) (resolve rs t) (resolve rs f)
 resolve _ (A.Lit x)     = Lit x
 resolve _ A.Nil         = Nil

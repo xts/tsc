@@ -17,6 +17,7 @@ import Core.Transformers.FreeFinder
 import Core.Transformers.Lifter
 import Core.Transformers.Renamer
 import Core.Transformers.Resolver
+import Core.Transformers.TailMarker
 
 compile :: Options -> IO (Either String ())
 compile options = runExceptT $ do
@@ -34,6 +35,7 @@ compile options = runExceptT $ do
      T.>>= findFreeVars   -- Annotate each lambda with the free variables in its body.
      T.>>= resolveSymbols -- Resolve text symbols to typed memory locations.
      T.>>= liftPrimitives -- Lift primitives to closures where necessary.
+     T.>>= markTails      -- Find and mark tail calls.
      T.>>= decompose      -- Split the program into a list of functions and associated data.
      T.>>= lowerToAsm     -- Generate assembly code.
      T.>>= T.return       -- (Seemingly redundant, but spends a credit and enables asm output.)

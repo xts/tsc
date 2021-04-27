@@ -5,6 +5,8 @@ module Core.CodeGen.Monad
   , runCodeGen
   , context
   , setContext
+  , reserved
+  , setReserved
   , lookupPrimitive
   , pushIndent
   , popIndent
@@ -32,6 +34,7 @@ newtype Primitives = Primitives { unPrimitives :: Map Text Primitive }
 
 data GenState = GenState
   { stContext   :: Text  -- ^ Current function.
+  , stReserved  :: Int   -- ^ Reserved stack words in the current function.
   , stNextLabel :: Int   -- ^ Suffix of next local code label.
   , stIndent    :: Int   -- ^ Assembly indentation level for debugging.
   }
@@ -41,7 +44,7 @@ type CodeGen a = RWST Primitives ByteString GenState (Except String) a
 runCodeGen :: Map Text Primitive -> CodeGen () -> Either String ByteString
 runCodeGen ps f = runExcept $ snd <$> evalRWST f (Primitives ps) st
   where
-    st  = GenState mempty 0 4
+    st  = GenState mempty 0 0 4
 
 emit :: ByteString -> CodeGen ()
 emit = tell
@@ -51,6 +54,12 @@ context = gets stContext
 
 setContext :: Text -> CodeGen ()
 setContext ctx = modify $ \st -> st { stContext = ctx }
+
+reserved :: CodeGen Int
+reserved = gets stReserved
+
+setReserved :: Int -> CodeGen ()
+setReserved k = modify $ \st -> st { stReserved = k }
 
 lookupPrimitive :: Text -> CodeGen (Maybe Primitive)
 lookupPrimitive name = Map.lookup name . unPrimitives <$> ask

@@ -17,8 +17,10 @@ expr (CArg i)           = load (Closure i) >> deref
 expr (If p t f)         = ifForm p t f
 expr (LamDec a f l)     = lambda a f l
 expr (Let vs es)        = letForm vs es
-expr (List (Prim s:es)) = applyPrimitive s es
-expr (List (e:es))      = apply e es
+expr (App (Prim s:es))  = applyPrimitive s es
+expr (App (e:es))       = apply e es
+expr (TApp (Prim s:es)) = applyPrimitive s es
+expr (TApp (e:es))      = tailApply e es
 expr (Lit lit)          = literal lit
 expr (Prim s)           = throwError $
   "error: indefinite arity primitive cannot be passed as an argument: " <> show s
@@ -51,6 +53,30 @@ apply e es = withComment ("Apply " <> show e) $ withSavedContext $ do
 
   ins "popq %rax"
   callClosure
+
+-- | Apply the operator to the given set of operands, re-using the current stack
+-- frame.
+tailApply :: Expr -> [Expr] -> CodeGen ()
+tailApply e es = withComment ("Tail-apply " <> show e) $ do
+  allocStack $ length es -- If the next function takes more arguments than we do, writing to its
+                         -- argument slots may clobber our data. Reserve space to avoid this.
+  withComment "Evaluate operator" $ do
+    expr e
+    ins "pushq %rax"
+
+  forM_ (zip es [1..]) $ \(e', i) -> do
+    withComment ("Evaluate argument " <> show (i :: Int)) $ do
+      expr e'
+      ins "pushq %rax"
+
+  forM_ (reverse [1..length es]) $ \i -> do
+    withComment ("Place argument " <> show (i :: Int)) $ do
+      ins "popq %rax"
+      store (Stack i)
+
+  ins "popq %rax"
+  freeStack $ length es
+  jumpClosure
 
 -- | Emit instructions for a primitive function.
 applyPrimitive :: Text -> [Expr] -> CodeGen ()

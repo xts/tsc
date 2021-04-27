@@ -12,6 +12,7 @@ module Core.CodeGen.Emitters
   , storeVia
   , deref
   , callClosure
+  , jumpClosure
   , withSavedContext
   , moveInt
   , define
@@ -94,6 +95,14 @@ callClosure = do
   ins "movq %rax, %rdi"
   ins "callq *(%rax)"
 
+jumpClosure :: CodeGen ()
+jumpClosure = do
+  freeStack =<< reserved
+  ins "popq %rbp"
+  untagClosure
+  ins "movq %rax, %rdi"
+  ins "jmp *(%rax)"
+
 withSavedContext :: CodeGen () -> CodeGen ()
 withSavedContext f = do
   ins "pushq %rdi"
@@ -112,16 +121,16 @@ define name = do
   dir "p2align 4, 0x90"
   label $ encodeUtf8 name
 
-prologue :: Int -> CodeGen ()
-prologue reservedWords = do
+prologue :: CodeGen ()
+prologue = do
   define =<< context
   ins "pushq %rbp"
   ins "movq %rsp, %rbp"
-  allocStack reservedWords
+  allocStack =<< reserved
 
-epilogue :: Int -> CodeGen ()
-epilogue reservedWords = do
-  freeStack reservedWords
+epilogue :: CodeGen ()
+epilogue = do
+  freeStack =<< reserved
   ins "popq %rbp"
   ins "retq"
 

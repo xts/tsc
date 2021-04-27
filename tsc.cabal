@@ -58,6 +58,7 @@ library
     Core.Transformers.Lifter,
     Core.Transformers.Renamer,
     Core.Transformers.Resolver,
+    Core.Transformers.TailMarker,
   build-depends:
     containers    ^>= 0.6,
     either        ^>= 5.0,

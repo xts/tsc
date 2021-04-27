@@ -21,18 +21,19 @@ lowerToAsm (Image fs ss) = transform $ runCodeGen primitives $ do
 -- | Emit a function prologue, its body, and an epilogue.
 function :: Function -> CodeGen ()
 function f@(Function (Label ctx) _ es) = do
-  let rsw = reservedStackWords f
   setContext ctx
-  prologue rsw
+  setReserved $ reservedStackWords f
+  prologue
   mapM_ expr es
-  epilogue rsw
+  epilogue
 
 -- | Our bridge from C point. Called by the RTS with the address of our heap and
 -- stack, which we place into the expected registers.
 entryFunction :: CodeGen ()
 entryFunction = do
   setContext "_scheme_entry"
-  prologue 0
+  setReserved 0
+  prologue
   ins "movq %rsi, %rsp" -- Our second argument is the stack ptr.
   ins "movq %rdi, %rsi" -- Our first argument is the heap ptr.
   ins "pushq %rbp"      -- Save our original stack pointer.
@@ -40,7 +41,7 @@ entryFunction = do
   ins $ "callq " <> encodeUtf8 (unLabel mainLabel)
   ins "popq %rsp"       -- Restore our original stack pointer.
   ins "xorq %rax, %rax" -- Return 0 to the OS.
-  epilogue 0
+  epilogue
 
 -- | Determine hov much pre-allocated stack space the given function needs. Our
 -- calling convention dictates that we need space for each of our arguments, plus
