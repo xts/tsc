@@ -41,11 +41,7 @@
 
 ;; Reverse list XS.
 (define (reverse xs)
-  (define (go acc xs)
-    (if (eq xs ())
-        acc
-        (go (cons (car xs) acc) (cdr xs))))
-  (go () xs))
+  (fold-left (lambda (x acc) (cons x acc)) () xs))
 
 ;; Sort a numeric list XS with insertion sort.
 (define (sort xs)
@@ -56,10 +52,4 @@
           (cons (car xs) (insert x (cdr xs)))
           (cons x xs))))
 
-  (define (go acc xs)
-    (if (null? xs)
-        acc
-        (go (insert (car xs) acc) (cdr xs))))
-
-  (go () xs))
-
+  (fold-right insert () xs))
