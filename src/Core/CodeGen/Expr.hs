@@ -31,7 +31,7 @@ literal (String (Right l)) = stringPtr l
 literal (String (Left _))  = throwError "String should have been labelized"
 
 apply :: Expr -> [Expr] -> CodeGen ()
-apply (Prim s) es = withComment ("Primitive " <> show s) $ primitive s >>= ($ es)
+apply (Prim s) es = withComment ("Primitive " <> s) $ primitive s >>= ($ es)
 apply e        es = withComment ("Apply " <> show e) $ withSavedContext $ do
   withComment "Evaluate operator" $ do
     expr e
