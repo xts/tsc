@@ -5,6 +5,9 @@ module Core.CodeGen.Monad
   , context
   , setContext
   , lookupPrimitive
+  , pushIndent
+  , popIndent
+  , getIndent
   , primitive
   , emit
   , funLabel
@@ -23,6 +26,7 @@ newtype Primitives = Primitives { unPrimitives :: Map Text Primitive }
 data GenState = GenState
   { stContext   :: Text  -- ^ Current function.
   , stNextLabel :: Int   -- ^ Suffix of next local code label.
+  , stIndent    :: Int   -- ^ Assembly indentation level for debugging.
   }
 
 type CodeGen a = RWST Primitives ByteString GenState (Except String) a
@@ -30,7 +34,7 @@ type CodeGen a = RWST Primitives ByteString GenState (Except String) a
 runCodeGen :: Map Text Primitive -> CodeGen () -> Either String ByteString
 runCodeGen ps f = runExcept $ snd <$> evalRWST f (Primitives ps) st
   where
-    st  = GenState mempty 0
+    st  = GenState mempty 0 4
 
 emit :: ByteString -> CodeGen ()
 emit = tell
@@ -43,6 +47,15 @@ setContext ctx = modify $ \st -> st { stContext = ctx }
 
 lookupPrimitive :: Text -> CodeGen (Maybe Primitive)
 lookupPrimitive name = Map.lookup name . unPrimitives <$> ask
+
+pushIndent :: CodeGen ()
+pushIndent = modify $ \st -> st { stIndent = stIndent st + 2 }
+
+popIndent :: CodeGen ()
+popIndent = modify $ \st -> st { stIndent = stIndent st - 2 }
+
+getIndent :: CodeGen Int
+getIndent = gets stIndent
 
 primitive :: Text -> CodeGen Primitive
 primitive name = lookupPrimitive name >>= \case

@@ -40,20 +40,22 @@ apply e        es = withSavedContext $ do
   callClosure
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
-lambda _ (FreeArgs fs) lab = do
+lambda _ (FreeArgs fs) lab = withComment ("Allocate closure for " <> unLabel lab) $ do
   alloc Align16 $ 1 + length fs
   ins "movq %rax, %rbx"
 
-  labelAddr lab
-  storeVia "%rbx" (Closure 0)
+  withComment "Store function pointer" $ do
+    labelAddr lab
+    storeVia "%rbx" (Closure 0)
 
   forM_ (zip [1..] fs) $ \(i, e) -> do
-    case e of
-      Var j  -> load (Stack j)
-      Arg j  -> load (Stack j) >> box
-      CArg j -> load (Closure j)
-      e' -> throwError $ "internal error: cannot allocate to closure: " <> show e'
-    storeVia "%rbx" (Closure i)
+    withComment ("Store argument " <> show i) $ do
+      case e of
+        Var j  -> load (Stack j)
+        Arg j  -> load (Stack j) >> box
+        CArg j -> load (Closure j)
+        e' -> throwError $ "internal error: cannot allocate to closure: " <> show e'
+      storeVia "%rbx" (Closure i)
 
   ins "movq %rbx, %rax"
   tagClosure
@@ -76,7 +78,7 @@ letForm vs es = do
   mapM_ letBind vs
   mapM_ expr es
   where
-    letBind (Binding i e) = do
+    letBind (Binding i e) = withComment ("Bind %V" <> show i <> " to " <> show e) $ do
       alloc Align8 1
       ins "pushq %rax"
       store (Stack i)

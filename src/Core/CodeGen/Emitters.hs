@@ -37,9 +37,12 @@ module Core.CodeGen.Emitters
   , dir
   , label
   , indent
+  , withComment
+  , comment
   ) where
 
 import Control.Monad.Except (throwError)
+import Data.ByteString.Char8 qualified as BS
 import Data.Char (isAscii)
 
 import Core.AST
@@ -175,14 +178,14 @@ alloc a n = do
       ins "andq $0xfffffffffffffff0, %rsi"
 
 box :: CodeGen ()
-box = do
+box = withComment "Box" $ do
   ins "pushq %rax"
   alloc Align8 1
   ins "popq %rdx"
   ins "movq %rdx, (%rax)"
 
 callC :: Text -> CodeGen ()
-callC sym = do
+callC sym = withComment ("Call foreign function " <> sym) $ do
   ins "pushq %rsi"      -- save heap ptr.
   ins "pushq %rdi"      -- save closure ptr.
   ins "movq %rax, %rdi" -- argument to function.
@@ -213,16 +216,26 @@ freeStack wordCount = ins $ "addq $" <> bytes <> ", %rsp"
     bytes = show $ wordCount * 8
 
 ins :: ByteString -> CodeGen ()
-ins text = emit $ indent <> text <> "\n"
+ins text = indent >> emit (text <> "\n")
 
 sep :: CodeGen ()
 sep = emit "\n"
 
 dir :: ByteString -> CodeGen ()
-dir name = emit $ indent <> "." <> name <> "\n"
+dir name = indent >> emit ("." <> name <> "\n")
 
 label :: ByteString -> CodeGen ()
 label name = emit $ name <> ":\n"
 
-indent :: ByteString
-indent = "    "
+comment :: Text -> CodeGen ()
+comment text = indent >> emit ("; # " <> encodeUtf8 text <> "\n")
+
+withComment :: Text -> CodeGen () -> CodeGen ()
+withComment s m = do
+  pushIndent
+  comment s
+  m
+  popIndent
+
+indent :: CodeGen ()
+indent = emit =<< flip BS.replicate ' ' <$> getIndent
