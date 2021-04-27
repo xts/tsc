@@ -17,23 +17,23 @@ isPrimitive s = Map.member s primitives
 
 primitives :: Map Text Primitive
 primitives = fromList
-  [ ("#display", display)
+  [ ("display", display)
   , ("+", add)
   , ("-", sub)
   , ("*", mul)
   , ("and", and)
-  , ("#eq", eq)
-  , ("#=", eq)
-  , ("#<", lessThan)
-  , ("#cons", cons)
-  , ("#car", car)
-  , ("#cdr", cdr)
+  , ("eq", eq)
+  , ("=", eq)
+  , ("<", lessThan)
+  , ("cons", cons)
+  , ("car", car)
+  , ("cdr", cdr)
   , ("list", list)
   , ("set!", set)
   , ("read-char", readChar)
   , ("error", error)
-  , ("#number->char", numberToChar)
-  , ("#char->number", charToNumber)
+  , ("number->char", numberToChar)
+  , ("char->number", charToNumber)
   ]
 
 display :: [Expr] -> CodeGen ()

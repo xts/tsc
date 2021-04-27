@@ -44,8 +44,8 @@ form = openBrace *> body <* closeBrace
 defForm :: Parser Expr
 defForm = keyword "define" *> (funDef <|> varDef)
   where
-    funDef = FunDef <$> (openBrace *> userSym) <*> (Args <$> many sym <* closeBrace) <*> some expr
-    varDef = VarDef <$> userSym <*> expr
+    funDef = FunDef <$> (openBrace *> sym) <*> (Args <$> many sym <* closeBrace) <*> some expr
+    varDef = VarDef <$> sym <*> expr
 
 -- | If is a conditional expression with an optional else.
 ifForm :: Parser Expr
@@ -62,27 +62,18 @@ letForm = Let <$> (keyword "let" *> openBrace *> many letVar <* closeBrace) <*> 
 letVar :: Parser Binding
 letVar = letNil <|> letExpr
   where
-    letNil  = Binding <$> userSym <*> pure Nil
-    letExpr = Binding <$> (openBrace *> userSym) <*> (expr <* closeBrace)
+    letNil  = Binding <$> sym <*> pure Nil
+    letExpr = Binding <$> (openBrace *> sym) <*> (expr <* closeBrace)
 
 -- | An anonymous function takes a list of symbols and a sequence of expressions.
 lambda :: Parser Expr
-lambda = LamDef
-  <$> (keyword "lambda" *> openBrace *> (Args <$> many userSym) <* closeBrace)
-  <*> pure (FreeArgs [])
-  <*> some expr
+lambda = LamDef <$> (keyword "lambda" *> openBrace *> (Args <$> many sym) <* closeBrace) <*> pure (FreeArgs []) <*> some expr
 
 -- | A symbol
 sym :: Parser Text
 sym = pack <$> lexeme (some symChar)
-
--- | A user symbol.
-userSym :: Parser Text
-userSym = pack <$> lexeme (some userSymChar)
-
--- | A valid character for user symbols.
-userSymChar :: Parser Char
-userSymChar = C.alphaNumChar
+  where
+    symChar = C.alphaNumChar
       <|> C.char '*'
       <|> C.char '/'
       <|> C.char '+'
@@ -93,13 +84,9 @@ userSymChar = C.alphaNumChar
       <|> C.char '!'
       <|> C.char '?'
 
--- | A valid symbol character.
-symChar :: Parser Char
-symChar = userSymChar <|> C.char '#'
-
 -- | Constants.
 literal :: Parser Expr
-literal = Lit <$> (try bool <|> number <|> try char <|> string)
+literal = Lit <$> (bool <|> number <|> char <|> string)
 
 -- | Fixnums have low limits.
 fixnumMin, fixnumMax :: Int
