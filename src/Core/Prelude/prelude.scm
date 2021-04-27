@@ -22,11 +22,22 @@
       ()
       (cons (f (car xs)) (map f (cdr xs)))))
 
+;; Fold right.
+(define (fold-right f init xs)
+   (if (null? xs)
+       init
+       (f (car xs)
+          (fold-right f init (cdr xs)))))
+
+;; Fold left.
+(define (fold-left f init xs)
+   (if (null? xs)
+       init
+       (fold-left f (f (car xs) init) (cdr xs))))
+
 ;; Find the length of the list XS.
 (define (length xs)
-  (if (null? xs)
-      0
-      (+ 1 (length (cdr xs)))))
+  (fold-right (lambda (x acc) (+ acc 1)) 0 xs))
 
 ;; Reverse list XS.
 (define (reverse xs)
