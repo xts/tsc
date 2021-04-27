@@ -32,11 +32,19 @@ literal (String (Left _))  = throwError "String should have been labelized"
 
 apply :: Expr -> [Expr] -> CodeGen ()
 apply (Prim s) es = primitive s >>= ($ es)
-apply e        es = withSavedContext $ do
+apply e        es = withComment ("apply " <> show e) $ withSavedContext $ do
+  withComment "Evaluate operator" $ do
+    expr e
+    ins "pushq %rax"
+
+  allocStack 1 -- Shift stack so that we can push operands directly into place.
   forM_ (zip es [1..]) $ \(e', i) -> do
-    expr e'
-    store (Param i)
-  expr e
+    withComment ("Evaluate argument " <> show (i :: Int)) $ do
+      expr e'
+      ins "pushq %rax"
+  freeStack $ 1 + length es -- Move stack pointer back.
+
+  ins "popq %rax"
   callClosure
 
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
