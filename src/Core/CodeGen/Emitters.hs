@@ -50,7 +50,6 @@ import Core.CodeGen.Monad
 
 data Location
   = Closure Int
-  | Param Int
   | Stack Int
 
 data Alignment = Align8 | Align16
@@ -80,19 +79,14 @@ stringPtr (Label l) = do
 load :: Location -> CodeGen ()
 load (Closure i) = ins $ "movq " <> show ( 8 * i) <> "(%rdi), %rax"
 load (Stack i)   = ins $ "movq " <> show (-8 * i) <> "(%rbp), %rax"
-load (Param _)   = throwError "Can't load from parameter"
 
 store :: Location -> CodeGen ()
 store l@(Closure _) = storeVia "%rdi" l
 store l@(Stack _)   = storeVia "%rbp" l
-store l@(Param _)   = storeVia "%rsp" l
 
 storeVia :: ByteString -> Location -> CodeGen ()
 storeVia reg (Closure i) = ins $ "movq %rax, " <> show ( 8 * i) <> "(" <> reg <> ")"
 storeVia reg (Stack i)   = ins $ "movq %rax, " <> show (-8 * i) <> "(" <> reg <> ")"
--- The first of the callee's stack slots is used for the return address, the
--- second for the callee's rbp-save, and so parameters start at stack slot 3.
-storeVia reg (Param i)   = ins $ "movq %rax, " <> show (-8 * (i + 2)) <> "(" <> reg <> ")"
 
 callClosure :: CodeGen ()
 callClosure = do
