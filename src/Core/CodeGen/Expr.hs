@@ -10,6 +10,7 @@ import Core.IR
 import Core.CodeGen.Emitters
 import Core.CodeGen.Monad
 
+-- | Emit instructions for an expression.
 expr :: Expr -> CodeGen ()
 expr (Arg i)            = load (Stack i)
 expr (CArg i)           = load (Closure i) >> deref
@@ -25,6 +26,7 @@ expr (Var i)            = load (Stack i) >> deref
 expr Nil                = nil
 expr e                  = throwError $ "Unable to lower " <> show e
 
+-- | Express the given literal.
 literal :: Literal -> CodeGen ()
 literal (Fixnum k)   = fixnum k
 literal (Bool True)  = true
@@ -33,6 +35,7 @@ literal (Char c)     = char c
 literal (String (Right l)) = stringPtr l
 literal (String (Left _))  = throwError "String should have been labelized"
 
+-- | Apply the operator to the given set of operands.
 apply :: Expr -> [Expr] -> CodeGen ()
 apply e es = withComment ("Apply " <> show e) $ withSavedContext $ do
   withComment "Evaluate operator" $ do
@@ -49,6 +52,7 @@ apply e es = withComment ("Apply " <> show e) $ withSavedContext $ do
   ins "popq %rax"
   callClosure
 
+-- | Emit instructions for a primitive function.
 applyPrimitive :: Text -> [Expr] -> CodeGen ()
 applyPrimitive name es = withComment ("Primitive " <> name) $ lookupPrimitive name >>= \case
   Just (Primitive emitter Indefinite) -> emitter es
@@ -57,6 +61,7 @@ applyPrimitive name es = withComment ("Primitive " <> name) $ lookupPrimitive na
     | otherwise      -> throwError $ "error: " <> unpack name <> " expects " <> show n <> " arguments"
   Nothing -> throwError $ "internal error: no such primitive " <> show name
 
+-- | Allocate and populate a closure.
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
 lambda _ (FreeArgs fs) lab = withComment ("Allocate closure for " <> unLabel lab) $ do
   alloc Align16 $ 1 + length fs
@@ -78,6 +83,7 @@ lambda _ (FreeArgs fs) lab = withComment ("Allocate closure for " <> unLabel lab
   ins "movq %rbx, %rax"
   tagClosure
 
+-- | Evaluate a condition and branch.
 ifForm :: Expr -> Expr -> Expr -> CodeGen ()
 ifForm p t f = do
   labFalse <- funLabel
@@ -91,6 +97,7 @@ ifForm p t f = do
   expr f
   label labEnd
 
+-- | Evaluate expressions and heap-allocate the results to stack positions.
 letForm :: [Binding] -> [Expr] -> CodeGen ()
 letForm vs es = do
   mapM_ letBind vs
