@@ -13,7 +13,9 @@ module Core.CodeGen.Emitters
   , deref
   , callClosure
   , jumpClosure
-  , withSavedContext
+  , withSavedClosure
+  , withSavedAccum
+  , withSavedRegister
   , moveInt
   , define
   , prologue
@@ -105,11 +107,15 @@ jumpClosure = do
   ins "movq %rax, %rdi"
   ins "jmp *(%rax)"
 
-withSavedContext :: CodeGen () -> CodeGen ()
-withSavedContext f = do
-  ins "pushq %rdi"
-  f
-  ins "popq %rdi"
+withSavedClosure :: CodeGen a -> CodeGen a
+withSavedClosure = withSavedRegister "%rdi"
+
+withSavedAccum :: CodeGen a -> CodeGen a
+withSavedAccum = withSavedRegister "%rax"
+
+withSavedRegister :: ByteString -> CodeGen a -> CodeGen a
+withSavedRegister reg f =
+  ins ("pushq " <> reg) *> f <* ins ("popq " <> reg)
 
 deref :: CodeGen ()
 deref = ins "movq (%rax), %rax"

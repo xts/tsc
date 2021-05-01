@@ -39,7 +39,7 @@ literal (String (Left _))  = throwError "String should have been labelized"
 
 -- | Apply the operator to the given set of operands.
 apply :: Expr -> [Expr] -> CodeGen ()
-apply e es = withComment ("Apply " <> show e) $ withSavedContext $ do
+apply e es = withComment ("Apply " <> show e) $ withSavedClosure $ do
   withComment "Evaluate operator" $ do
     expr e
     ins "pushq %rax"
