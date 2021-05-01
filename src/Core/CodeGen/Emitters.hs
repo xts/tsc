@@ -43,6 +43,7 @@ module Core.CodeGen.Emitters
   , comment
   ) where
 
+import Control.Lens
 import Control.Monad.Except (throwError)
 import Data.ByteString.Char8 qualified as BS
 import Data.Char (isAscii)
@@ -98,7 +99,7 @@ callClosure = do
 
 jumpClosure :: CodeGen ()
 jumpClosure = do
-  freeStack =<< reserved
+  freeStack =<< use reservedWords
   ins "popq %rbp"
   untagClosure
   ins "movq %rax, %rdi"
@@ -124,14 +125,14 @@ define name = do
 
 prologue :: CodeGen ()
 prologue = do
-  define =<< context
+  define =<< use contextName
   ins "pushq %rbp"
   ins "movq %rsp, %rbp"
-  allocStack =<< reserved
+  allocStack =<< use reservedWords
 
 epilogue :: CodeGen ()
 epilogue = do
-  freeStack =<< reserved
+  freeStack =<< use reservedWords
   ins "popq %rbp"
   ins "retq"
 
@@ -171,7 +172,7 @@ labelAddr (Label l) = ins $ "leaq " <> encodeUtf8 l <> "(%rip), %rax"
 
 string :: Text -> Label -> CodeGen ()
 string s (Label l) = do
-  setContext l
+  contextName .= l
   define l
   dir $ "asciz \"" <> encodeUtf8 s <> "\""
 
@@ -241,10 +242,10 @@ comment text = indent >> emit ("; # " <> encodeUtf8 text <> "\n")
 
 withComment :: Text -> CodeGen () -> CodeGen ()
 withComment s m = do
-  pushIndent
+  indentColumn += 2
   comment s
   m
-  popIndent
+  indentColumn -= 2
 
 indent :: CodeGen ()
-indent = emit =<< flip BS.replicate ' ' <$> getIndent
+indent = emit =<< flip BS.replicate ' ' <$> use indentColumn

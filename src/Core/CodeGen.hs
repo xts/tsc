@@ -2,6 +2,8 @@ module Core.CodeGen
   ( lowerToAsm
   ) where
 
+import Control.Lens hiding (transform)
+
 import Core.IR
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
@@ -21,9 +23,9 @@ lowerToAsm (Image fs ss) = transform $ runCodeGen primitives $ do
 
 -- | Emit a function prologue, its body, and an epilogue.
 function :: Function -> CodeGen ()
-function f@(Function (Label ctx) _ es) = do
-  setContext ctx
-  setReserved $ reservedStackWords f
+function f@(Function (Label name) _ es) = do
+  contextName .= name
+  reservedWords .= reservedStackWords f
   prologue
   mapM_ expr es
   epilogue
@@ -32,8 +34,8 @@ function f@(Function (Label ctx) _ es) = do
 -- stack, which we place into the expected registers.
 entryFunction :: CodeGen ()
 entryFunction = do
-  setContext "_scheme_entry"
-  setReserved 0
+  contextName .= "_scheme_entry"
+  reservedWords .= 0
   prologue
   ins "movq %rsi, %rsp" -- Our second argument is the stack ptr.
   ins "movq %rdi, %rsi" -- Our first argument is the heap ptr.
@@ -57,8 +59,7 @@ globalData = do
 -- the number of arguments.
 reservedStackWords :: Function -> Int
 reservedStackWords (Function _ (Args as) es) =
-  execState (transformIr go es) (length as)
+  execState (transformIr maxBinding es) (length as)
   where
-    go :: Expr -> State Int Expr
-    go e@(Let vs _) = (forM_ vs $ \(Binding i _) -> modify (`max` i)) $> e
-    go e = pure e
+    maxBinding e@(Let vs _) = (forM_ vs $ \(Binding i _) -> modify (`max` i)) $> e
+    maxBinding e = pure e
