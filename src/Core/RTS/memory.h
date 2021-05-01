@@ -7,12 +7,13 @@
 /* Process stack. */
 uint64_t *memory_stack();
 size_t memory_stack_size();
+uint64_t *memory_stack_top();
 
 /* Process heap. */
 uint64_t *memory_heap();
 uint64_t *memory_other_heap();
 size_t memory_heap_size();
-void memory_switch_heaps();
+uint64_t *memory_switch_heap();
 
 /* Initialise the memory system. */
 void memory_init();
