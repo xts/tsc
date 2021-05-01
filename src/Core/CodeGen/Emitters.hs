@@ -34,6 +34,7 @@ module Core.CodeGen.Emitters
   , allocStack
   , freeStack
   , alloc
+  , maybeTriggerGC
   , box
   , callC
   , ins
@@ -183,15 +184,9 @@ string s (Label l) = do
   dir $ "asciz \"" <> encodeUtf8 s <> "\""
 
 alloc :: Alignment -> Int -> CodeGen ()
-alloc a n = do
-  align a
-  ins "movq %rsi, %rax"
-  ins $ "addq $" <> show (8 * n) <> ", %rsi"
-  where
-    align Align8 = pure ()
-    align Align16 = do
-      ins "addq $0x8, %rsi"
-      ins "andq $0xfffffffffffffff0, %rsi"
+alloc _ n = do
+  moveInt n "%rax"
+  ins "callq _scheme_alloc"
 
 box :: CodeGen ()
 box = withComment "Box" $ do
@@ -230,6 +225,16 @@ freeStack 0         = pure ()
 freeStack wordCount = ins $ "addq $" <> bytes <> ", %rsp"
   where
     bytes = show $ wordCount * 8
+
+maybeTriggerGC :: CodeGen ()
+maybeTriggerGC = do
+  done <- funLabel
+  ins "decq _scheme_gc_countdown(%rip)"
+  ins $ "jns " <> done
+  ins "movq %rsi, %rax"
+  callC "_gc_collect"
+  ins $ "movq %rax, %rsi" -- GC returns new heap ptr
+  label done
 
 ins :: ByteString -> CodeGen ()
 ins text = indent >> emit (text <> "\n")

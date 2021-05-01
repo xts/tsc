@@ -18,6 +18,7 @@ static uint64_t *g_moat1 = 0;
 static uint64_t *g_heap1 = 0;
 static uint64_t *g_moat2 = 0;
 static uint64_t *g_heap2 = 0;
+static uint64_t *g_active_heap = 0;
 
 /* Scheme process accessors. */
 extern uint64_t *scheme_heap_max;
@@ -81,8 +82,12 @@ size_t memory_stack_size() {
     return STACK_SIZE * PAGE_WORDS;
 }
 
+uint64_t *memory_stack_top() {
+    return memory_stack() + memory_stack_size();
+}
+
 uint64_t *memory_heap() {
-    return g_heap1;
+    return g_active_heap;
 }
 
 size_t memory_heap_size() {
@@ -90,7 +95,11 @@ size_t memory_heap_size() {
 }
 
 uint64_t *memory_other_heap() {
-    return g_heap2;
+    return g_active_heap == g_heap1 ? g_heap2 : g_heap1;
+}
+
+uint64_t *memory_switch_heap() {
+    return g_active_heap = memory_other_heap();
 }
 
 void memory_init() {
@@ -103,6 +112,8 @@ void memory_init() {
     g_heap1 = g_moat2 + PAGE_WORDS;
     g_moat1 = g_heap1 + PAGE_WORDS * HEAP_SIZE;
     g_stack = g_moat1 + PAGE_WORDS;
+
+    g_active_heap = g_heap1;
 
     /* Protect the space between the heap and the stack
      * to detect OOM and stack overflow. */

@@ -5,6 +5,8 @@ maintainer:         terje@stoeback.net
 author:             Terje Stoeback
 extra-source-files:
   CHANGELOG.md,
+  src/Core/RTS/gc.c,
+  src/Core/RTS/gc.h,
   src/Core/RTS/main.c,
   src/Core/RTS/memory.h,
   src/Core/RTS/memory.c,
