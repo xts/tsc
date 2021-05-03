@@ -19,7 +19,7 @@ Run `make test` to run the test suite, running tests in parallel.
 
 See [`src/Core/Compiler.hs`](../main/src/Core/Compiler.hs) for the pipeline.
 
-See [`src/Core/Prelude/prelude.scm`](../main/src/Prelude/prelude.scm) for functions available to programs.
+See [`src/Core/Prelude/prelude.scm`](../main/src/Core/Prelude/prelude.scm) for non-primitive functions available to programs.
 
 The heap, stack, and code all use units of 64-bit words.
 
