@@ -110,6 +110,19 @@ static void set_forwarding_pointer(uint64_t *header, uint64_t *ptr) {
 }
 
 /*
+ * Allocate `N` words, ensuring the body is 16-byte aligned.
+ */
+static uint64_t *alloc(uint64_t size, uint64_t **alloc_ptr) {
+    if (((uintptr_t)*alloc_ptr & 0xf) == 0) {
+        *alloc_ptr += 1;
+    }
+
+    uint64_t *ret = *alloc_ptr;
+    *alloc_ptr += size + 1;
+    return ret;
+}
+
+/*
  * Move an allocation to new heap.
  *
  * @param ptr Pointer into allocation to move.
@@ -133,11 +146,11 @@ static uint64_t *move_allocation(uint64_t *ptr, uint64_t **alloc_ptr) {
      * and we can return it directly (with tag and offset applied.) */
     uint64_t *address = get_forwarding_pointer(header);
 
+    /* Otherwise we'll move it. */
     if (!address) {
         /* Allocate space for the copy in the other heap. */
         uint64_t size = allocation_size(header);
-        address = *alloc_ptr;
-        *alloc_ptr += size + 1;
+        address = alloc(size, alloc_ptr);
 
         /* Copy the header. */
         *(uint64_t **)address = *(uint64_t **)header;
