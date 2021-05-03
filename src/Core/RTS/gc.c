@@ -133,7 +133,7 @@ static uint64_t *alloc(uint64_t size, uint64_t **alloc_ptr) {
  */
 static uint64_t *move_allocation(uint64_t *ptr, uint64_t **alloc_ptr) {
     /* Find the allocation header (and verify that it's a valid pointer.) */
-    uint64_t *header = allocation_header(untag(ptr));
+    uint64_t *header = allocation_header(ptr);
     if (!header) {
         return 0;
     }
