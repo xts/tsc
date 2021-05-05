@@ -18,6 +18,7 @@ import Core.Transformers.Lifter
 import Core.Transformers.Renamer
 import Core.Transformers.Resolver
 import Core.Transformers.TailMarker
+import Core.TypeChecker
 
 compile :: Options -> IO (Either String ())
 compile options = runExceptT $ do
@@ -32,6 +33,7 @@ compile options = runExceptT $ do
     parse (optionalPrelude <> source)
      T.>>= desugar        -- Replace convenience forms with basic forms.
      T.>>= renameSymbols  -- Give each symbol a unique name, removing shadow bindings.
+     T.>>= typeCheck      -- Infer types and ensure the program is well-typed.
      T.>>= findFreeVars   -- Annotate each lambda with the free variables in its body.
      T.>>= resolveSymbols -- Resolve text symbols to typed memory locations.
      T.>>= liftPrimitives -- Lift primitives to closures where necessary.

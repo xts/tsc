@@ -24,6 +24,7 @@ common shared
     ImportQualifiedPost,
     OverloadedStrings,
     QualifiedDo,
+    StandaloneDeriving,
     TemplateHaskell,
     TupleSections
   ghc-options:
@@ -63,6 +64,10 @@ library
     Core.Transformers.Renamer,
     Core.Transformers.Resolver,
     Core.Transformers.TailMarker,
+    Core.TypeChecker,
+    Core.TypeChecker.Monad,
+    Core.TypeChecker.Types,
+    Core.TypeChecker.Variable,
   build-depends:
     containers    ^>= 0.6,
     either        ^>= 5.0,
