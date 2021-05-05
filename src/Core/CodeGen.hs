@@ -47,7 +47,7 @@ entryFunction = do
   ins "xorq %rax, %rax" -- Return 0 to the OS.
   epilogue
 
--- | Allocate `n` words with 16-byte ealignment. A header will be stored in
+-- | Allocate `n` words with 8-byte ealignment. A header will be stored in
 -- the preceding word marking this as a memory allocation and including
 -- the size. This is to help the GC.
 allocFunction :: CodeGen ()
@@ -55,16 +55,15 @@ allocFunction = do
   contextName .= "_scheme_alloc"
   prologue
 
-  -- Possibly trigger GC and convert argument from words to bytes.
+  -- Possibly trigger GC.
   ins "pushq %rax"
   maybeTriggerGC
   ins "popq %rdx"
-  ins "shlq $3, %rdx"
 
-  -- Align and bump the pointer.
-  ins "addq $0x10, %rsi"
-  ins "andq $0xfffffffffffffff0, %rsi"
+  -- Bump the pointer (add header and convert from words to bytes.)
+  ins "addq $8, %rsi"
   ins "movq %rsi, %rax"
+  ins "shlq $3, %rdx"
   ins "addq %rdx, %rsi"
 
   -- Write the allocation header.

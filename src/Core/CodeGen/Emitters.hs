@@ -1,6 +1,5 @@
 module Core.CodeGen.Emitters
   ( Location(..)
-  , Alignment(..)
   , nil
   , true
   , false
@@ -57,8 +56,6 @@ import Core.CodeGen.Monad
 data Location
   = Closure Int
   | Stack Int
-
-data Alignment = Align8 | Align16
 
 nil :: CodeGen ()
 nil = moveInt 0x3f "%rax"
@@ -183,15 +180,15 @@ string s (Label l) = do
   define l
   dir $ "asciz \"" <> encodeUtf8 s <> "\""
 
-alloc :: Alignment -> Int -> CodeGen ()
-alloc _ n = do
+alloc :: Int -> CodeGen ()
+alloc n = do
   moveInt n "%rax"
   ins "callq _scheme_alloc"
 
 box :: CodeGen ()
 box = withComment "Box" $ do
   ins "pushq %rax"
-  alloc Align8 1
+  alloc 1
   ins "popq %rdx"
   ins "movq %rdx, (%rax)"
 

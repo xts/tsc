@@ -90,7 +90,7 @@ applyPrimitive name es = withComment ("Primitive " <> name) $ lookupPrimitive na
 -- | Allocate and populate a closure.
 lambda :: Args -> FreeArgs -> Label -> CodeGen ()
 lambda _ (FreeArgs fs) lab = withComment ("Allocate closure for " <> unLabel lab) $ do
-  alloc Align16 $ 1 + length fs
+  alloc $ 1 + length fs
   ins "movq %rax, %rbx"
 
   withComment "Store function pointer" $ do
@@ -130,7 +130,7 @@ letForm vs es = do
   mapM_ expr es
   where
     letBind (Binding i e) = withComment ("Bind %V" <> show i <> " to " <> show e) $ do
-      alloc Align8 1
+      alloc 1
       ins "pushq %rax"
       store (Stack i)
       expr e

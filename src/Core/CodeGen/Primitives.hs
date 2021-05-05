@@ -158,7 +158,7 @@ cons [a, d] = do
   ins "pushq %rax"
   expr d
   ins "pushq %rax"
-  alloc Align8 2
+  alloc 2
   ins "popq %rdx"
   ins "movq %rdx, 8(%rax)"
   ins "popq %rdx"
@@ -184,7 +184,7 @@ list :: [Expr] -> CodeGen ()
 list [] = nil
 list es = do
   -- Allocate space for all cells.
-  alloc Align8 $ 2 * length es
+  alloc $ 2 * length es
   ins "movq %rax, %rdx"
 
   -- Compute each element and place them in their respective car slots.
