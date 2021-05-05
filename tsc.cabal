@@ -102,7 +102,6 @@ test-suite spec
     utf8-string   ^>= 1.0,
     tsc
   other-modules:
-    AnalyserSpec
     CompilerSpec
     ParserSpec
     RenamerSpec
