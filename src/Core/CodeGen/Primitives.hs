@@ -1,6 +1,7 @@
 module Core.CodeGen.Primitives
   ( primitives
   , isPrimitive
+  , arity
   ) where
 
 import Control.Monad.Except (throwError)
@@ -11,29 +12,30 @@ import Core.IR
 import Core.CodeGen.Emitters
 import Core.CodeGen.Expr
 import Core.CodeGen.Monad
+import Core.TypeChecker.Types
 
 isPrimitive :: Text -> Bool
 isPrimitive s = Map.member s primitives
 
 primitives :: Map Text Primitive
-primitives = fromList
-  [ ("*", Primitive mul Indefinite)
-  , ("+", Primitive add Indefinite)
-  , ("-", Primitive sub Indefinite)
-  , ("<", Primitive lessThan $ Arity 2)
-  , ("=", Primitive eq $ Arity 2)
-  , ("and", Primitive and Indefinite)
-  , ("car", Primitive car $ Arity 1)
-  , ("cdr", Primitive cdr $ Arity 1)
-  , ("char->number", Primitive charToNumber $ Arity 1)
-  , ("cons", Primitive cons $ Arity 2)
-  , ("display", Primitive display $ Arity 1)
-  , ("eq", Primitive eq $ Arity 2)
-  , ("error", Primitive error $ Arity 1)
-  , ("list", Primitive list Indefinite)
-  , ("number->char", Primitive numberToChar $ Arity 1)
-  , ("read-char", Primitive readChar $ Arity 0)
-  , ("set!", Primitive set $ Arity 2)
+primitives = let t = TyVar 0 in fromList
+  [ ("*",            Primitive mul          $ TyFunV TyInt TyInt)
+  , ("+",            Primitive add          $ TyFunV TyInt TyInt)
+  , ("-",            Primitive sub          $ TyFunV TyInt TyInt)
+  , ("<",            Primitive lessThan     $ TyFun [TyInt, TyInt] TyBool)
+  , ("=",            Primitive eq           $ TyFun [t, t] TyBool)
+  , ("and",          Primitive and          $ TyFunV t TyBool)
+  , ("car",          Primitive car          $ TyFun [TyList t] t)
+  , ("cdr",          Primitive cdr          $ TyFun [TyList t] (TyList t))
+  , ("cons",         Primitive cons         $ TyFun [t, TyList t] (TyList t))
+  , ("eq",           Primitive eq           $ TyFun [t, t] TyBool)
+  , ("error",        Primitive error        $ TyFun [t] TyBot)
+  , ("list",         Primitive list         $ TyFunV t (TyList t))
+  , ("set!",         Primitive set          $ TyFun [t, t] TyBool)
+  , ("display",      Primitive display      $ TyFun [t] TyBool)
+  , ("read-char",    Primitive readChar     $ TyFun [] TyChar)
+  , ("char->number", Primitive charToNumber $ TyFun [TyChar] TyInt)
+  , ("number->char", Primitive numberToChar $ TyFun [TyInt] TyChar)
   ]
 
 display :: [Expr] -> CodeGen ()

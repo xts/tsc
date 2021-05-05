@@ -6,7 +6,7 @@ import Data.Map qualified as Map
 
 import Core.IR
 import Core.CodeGen.Primitives
-import Core.CodeGen.Monad (Primitive(..), Arity(..))
+import Core.CodeGen.Monad (Arity(..))
 import Core.Transform (Transform, transform)
 
 -- | Lift primitives to closures where necessary.
@@ -23,8 +23,8 @@ liftPrimitives = transform . Right . map go
     -- Lift primitives in operand position.
     go (Prim s) = LamDef params (FreeArgs []) [App $ Prim s : args]
       where
-        params = Args $ map (("x" <>) . show) [1..arity s]
-        args   = map Arg [1..arity s]
+        params = Args $ map (("x" <>) . show) [1..arity' s]
+        args   = map Arg [1..arity' s]
 
     -- Recurse.
     go (If p t f)        = If (go p) (go t) (go f)
@@ -33,10 +33,9 @@ liftPrimitives = transform . Right . map go
     go (LamDef as fs bs) = LamDef as fs $ map go bs
     go e                 = e
 
-arity :: Text -> Int
-arity name = case Map.lookup name primitives of
-  Just (Primitive _ (Arity n)) -> n
-  Just (Primitive _ Indefinite) ->
-    error $ "internal error: can't lift primitive with indefinite arity: " <> name
-  Nothing ->
-    error $ "internal error: no such primitive " <> name
+arity' :: Text -> Int
+arity' name = case Map.lookup name primitives of
+  Just p -> case arity p of
+    Arity n    -> n
+    Indefinite -> error $ "internal error: can't lift primitive with indefinite arity: " <> name
+  Nothing -> error $ "internal error: no such primitive " <> name

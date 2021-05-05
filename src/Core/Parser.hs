@@ -52,7 +52,7 @@ ifForm :: Parser Expr
 ifForm = If
   <$> (keyword "if" *> expr)
   <*> expr
-  <*> (expr <|> lookAhead closeBrace $> Nil)
+  <*> (expr <|> lookAhead closeBrace $> (Lit $ Bool False))
 
 -- | Let binds a sequence of name-expression pairs around a sub-program.
 letForm :: Parser Expr

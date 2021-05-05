@@ -3,5 +3,4 @@
 (display (if 0 1 0))
 (display (if "" 1 0))
 (display (if #f 1 0))
-(display (if #t 1))
 (if #f (display 0))

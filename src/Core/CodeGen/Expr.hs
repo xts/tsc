@@ -81,10 +81,10 @@ tailApply e es = withComment ("Tail-apply " <> show e) $ do
 -- | Emit instructions for a primitive function.
 applyPrimitive :: Text -> [Expr] -> CodeGen ()
 applyPrimitive name es = withComment ("Primitive " <> name) $ lookupPrimitive name >>= \case
-  Just (Primitive emitter Indefinite) -> emitter es
-  Just (Primitive emitter (Arity n))
-    | n == length es -> emitter es
-    | otherwise      -> throwError $ "error: " <> unpack name <> " expects " <> show n <> " arguments"
+  Just p@(Primitive emitter _)
+    | arity p == Indefinite        -> emitter es
+    | arity p == Arity (length es) -> emitter es
+    | otherwise -> throwError $ "error: " <> unpack name <> " expects " <> show (arity p) <> " arguments"
   Nothing -> throwError $ "internal error: no such primitive " <> show name
 
 -- | Allocate and populate a closure.
