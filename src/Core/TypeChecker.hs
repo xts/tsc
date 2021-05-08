@@ -95,7 +95,7 @@ inferSeq g u es = second reverse <$> foldM go (u, []) es
 unify :: Type -> Type -> TC Subst
 unify (TyVar n) s = bind n s
 unify t (TyVar n) = bind n t
-unify (TyFun as b) (TyFun cs d) = do
+unify (TyFun as b) (TyFun cs d) | length as == length cs = do
   u <- foldM (\u (a, c) -> unify (apply u a) (apply u c)) mempty $ zip as cs
   mappend u <$> unify (apply u b) (apply u d)
 unify (TyList (TyVar n)) (TyList t) = bind n t
