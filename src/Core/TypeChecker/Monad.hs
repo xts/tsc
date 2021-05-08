@@ -13,8 +13,6 @@ import Prelude hiding (Type)
 import Core.TypeChecker.Types
 import Core.TypeChecker.Variable
 
--- TODO Instead of threading substitutions manually, should they be state?
-
 -- | Our type checker monad is a simple state monad holding the next type variable id.
 type TC a = StateT Id (Except String) a
 

@@ -22,11 +22,11 @@ typeCheck es = transform $ runExcept $ do
   pure es
   where
     env = Env (Map.fromList
-               [ ("cons", Scheme [0] (TyArr (TyVar 0) (TyArr (TyList (TyVar 0)) (TyList (TyVar 0)))))
-               , ("display", Scheme [1] (TyArr (TyVar 1) TyBool))
-               , ("<", Scheme [] (TyArr TyInt (TyArr TyInt TyBool)))
-               , ("eq", Scheme [2] (TyArr (TyVar 2) (TyArr (TyVar 2) TyBool)))
-               , ("car", Scheme [3] (TyArr (TyList (TyVar 3)) (TyVar 3)))
+               [ ("cons",    Scheme [0] $ TyFun [TyVar 0, TyList (TyVar 0)] (TyList (TyVar 0)))
+               , ("display", Scheme [1] $ TyFun [TyVar 1] TyBool)
+               , ("<",       Scheme []  $ TyFun [TyInt, TyInt] TyBool)
+               , ("eq",      Scheme [2] $ TyFun [TyVar 2, TyVar 2] TyBool)
+               , ("car",     Scheme [3] $ TyFun [TyList (TyVar 3)] (TyVar 3))
                ])
 
 -- | Instantiate a scheme with fresh variables.
@@ -62,13 +62,13 @@ infer g (LamDef (Args as) _ es) = do
   ts <- replicateM (length as) freshVar
   let g' = foldr (\(s, t) m -> assign s (Scheme [] t) m) g $ zip as ts
   (u, ss) <- inferSeq g' mempty es
-  pure (u, apply u $ funType ts $ last ss)
+  pure (u, apply u $ TyFun ts $ last ss)
 
 infer g (List (e:es)) = do
   (u, t) <- infer g e
   (v, ts) <- inferSeq g u es
   f <- freshVar
-  w <- unify (apply v t) (funType ts f)
+  w <- unify (apply v t) (TyFun ts f)
   pure (w <> v <> u, apply w f)
 
 infer g (If p bt bf) = do
@@ -91,17 +91,12 @@ inferSeq g u es = second reverse <$> foldM go (u, []) es
       (v, t) <- infer (apply u' g) e'
       pure (v <> u', t:ts)
 
--- | Assemble a function type from multiple inputs and an output.
-funType :: [Type] -> Type -> Type
-funType (r:s) t = TyArr r (funType s t)
-funType []    t = t
-
 -- | Unify two types, finding a substition that transforms one to the other.
 unify :: Type -> Type -> TC Subst
 unify (TyVar n) s = bind n s
 unify t (TyVar n) = bind n t
-unify (TyArr a b) (TyArr c d) = do
-  u <- unify a c
+unify (TyFun as b) (TyFun cs d) = do
+  u <- foldM (\u (a, c) -> unify (apply u a) (apply u c)) mempty $ zip as cs
   mappend u <$> unify (apply u b) (apply u d)
 unify (TyList (TyVar n)) (TyList t) = bind n t
 unify (TyList t) (TyList (TyVar n)) = bind n t

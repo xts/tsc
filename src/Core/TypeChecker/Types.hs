@@ -10,7 +10,7 @@ import Text.Show qualified
 -- | An unquantified type.
 data Type
    = TyVar Id
-   | TyArr Type Type
+   | TyFun [Type] Type
    | TyList Type
    | TyInt
    | TyBool
@@ -22,7 +22,7 @@ type Id = Int
 
 instance Show Type where
   show (TyVar n)   = "t" <> show n
-  show (TyArr s t) = show s <> " -> " <> show t
+  show (TyFun s t) = "(" <> (intercalate " " $ map show s) <> ") -> " <> show t
   show (TyList t)  = "[" <> show t <> "]"
   show TyInt       = "Int"
   show TyBool      = "Bool"

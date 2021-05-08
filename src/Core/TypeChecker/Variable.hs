@@ -18,12 +18,12 @@ instance Variable Type where
   apply (Subst s) t@(TyVar n) = case Map.lookup n s of
     Just t' -> t'
     Nothing -> t
-  apply s (TyArr t u) = TyArr (apply s t) (apply s u)
+  apply s (TyFun t r) = TyFun (map (apply s) t) (apply s r)
   apply s (TyList t)  = TyList (apply s t)
   apply _ t           = t
 
   free (TyVar n)   = Set.singleton n
-  free (TyArr s t) = free s <> free t
+  free (TyFun s t) = free t <> mconcat (map free s)
   free (TyList t)  = free t
   free _           = mempty
 
