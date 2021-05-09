@@ -88,6 +88,9 @@ spec = do
       infer' (def_sort <> "sort")
         `shouldBe` Right [TyFun [TyList TyInt] (TyList TyInt)]
 
+    it "performs occurs check" $ do
+      infer' "(let ((f (lambda (x) (f f)))) f)" `shouldSatisfy` isLeft
+
 def_nullp :: Text
 def_nullp = "(define (null? xs) (eq xs ()))"
 

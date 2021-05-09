@@ -5,7 +5,7 @@ module Core.TypeChecker
   , reset
   ) where
 
-import Control.Monad.Except (runExcept)
+import Control.Monad.Except (runExcept, throwError)
 import Control.Monad (foldM)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
@@ -54,7 +54,7 @@ infer _ Nil = (mempty,) . TyList <$> freshVar
 
 infer g (Sym s) = case lookup s g of
   Just t  -> (mempty,) <$> instantiate t
-  Nothing -> error $ "internal error: no such binding " <> show s
+  Nothing -> throwError $ "internal error: no such binding " <> show s
 
 infer g (Let bs es) = do
   (u, g') <- foldM binding (mempty, g) bs
@@ -97,7 +97,7 @@ infer _ (Lit (Fixnum _)) = pure (mempty, TyInt)
 infer _ (Lit (Char _))   = pure (mempty, TyChar)
 infer _ (Lit (String _)) = pure (mempty, TyString)
 
-infer _ e = error $ "can't infer " <> show e
+infer _ e = throwError $ "internal error: can't infer type of " <> show e
 
 -- | Infer the type of multiple expressions, accumulating substitutions.
 inferSeq :: Env -> Subst -> [Expr] -> TC (Subst, [Type])
@@ -126,12 +126,12 @@ unify TyBot _ = pure mempty
 unify _ TyBot = pure mempty
 
 unify s t | s == t    = pure mempty
-          | otherwise = error $ "type mismatch: " <> show t <> " vs " <> show s
+          | otherwise = throwError $ "type mismatch: " <> show t <> " vs " <> show s
 
 -- | Create a substitution from a type variable to a type.
 bind :: Int -> Type -> TC Subst
 bind n (TyVar k) | n == k = pure mempty
-bind n t | n `Set.member` free t = error $ "error: occurs check failed for " <> show t
+bind n t | n `Set.member` free t = throwError $ "error: occurs check failed for " <> show t
          | otherwise             = pure $ Subst $ Map.singleton n t
 
 -- | Minimise variable ids while preserving ordering, e.g. t3 -> t5 => t0 -> t1.
