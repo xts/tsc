@@ -10,6 +10,8 @@ import Prelude hiding (Type, last)
 import Relude.Unsafe (last)
 
 import Core.AST
+import Core.CodeGen.Monad (Primitive(..))
+import Core.CodeGen.Primitives (primitives)
 import Core.Transform (Transform, transform)
 import Core.TypeChecker.Monad
 import Core.TypeChecker.Types
@@ -17,18 +19,16 @@ import Core.TypeChecker.Variable
 
 -- | Infer the type of an expression.
 typeCheck :: Monad m => [Expr] -> Transform m [Expr]
-typeCheck es = transform $ runExcept $ do
-  evalStateT (mapM_ (infer env) es) 4
-  pure es
+typeCheck es = transform $ runExcept $ evalStateT go 0
   where
-    env = Env (Map.fromList
-               [ ("cons",    Scheme [0] $ TyFun [TyVar 0, TyList (TyVar 0)] (TyList (TyVar 0)))
-               , ("display", Scheme [1] $ TyFun [TyVar 1] TyBool)
-               , ("<",       Scheme []  $ TyFun [TyInt, TyInt] TyBool)
-               , ("eq",      Scheme [2] $ TyFun [TyVar 2, TyVar 2] TyBool)
-               , ("car",     Scheme [3] $ TyFun [TyList (TyVar 3)] (TyVar 3))
-               , ("+",       Scheme []  $ TyFunV TyInt TyInt)
-               ])
+    go = do
+      env <- foldM addPrimitive mempty $ Map.toList primitives
+      mapM_ (infer env) es
+      pure es
+
+    addPrimitive g (name, Primitive _ ty) = do
+      ty' <- generalise g <$> instantiate (generalise g ty)
+      pure $ assign name ty' g
 
 -- | Instantiate a scheme with fresh variables.
 instantiate :: Scheme -> TC Type
@@ -69,7 +69,7 @@ infer g (List (e:es)) = do
   (u, t) <- infer g e
   (v, ts) <- inferSeq g u es
   f <- freshVar
-  w <- unify (traceShowId $ apply v t) (traceShowId $ TyFun ts f)
+  w <- unify (apply v t) (TyFun ts f)
   pure (w <> v <> u, apply w f)
 
 infer g (If p bt bf) = do
@@ -106,6 +106,9 @@ unify (TyFun as b) (TyFun cs d) | length as == length cs = do
 
 unify (TyFunV a b) t@(TyFun cs _) = unify (TyFun (replicate (length cs) a) b) t
 unify t s@(TyFunV {}) = unify s t
+
+unify TyBot _ = pure mempty
+unify _ TyBot = pure mempty
 
 unify s t | s == t    = pure mempty
           | otherwise = error $ "type mismatch: " <> show t <> " vs " <> show s

@@ -8,6 +8,7 @@ module Core.CodeGen.Monad
   , indentColumn
   , lookupPrimitive
   , primitive
+  , arity
   , emit
   , funLabel
   ) where
@@ -16,17 +17,19 @@ import Control.Lens
 import Control.Monad.RWS (RWST, evalRWST, tell)
 import Control.Monad.Except (Except, runExcept, throwError)
 import Data.Map qualified as Map
-import Prelude hiding (State)
+import Prelude hiding (State, Type)
 
 import Core.IR
+import Core.TypeChecker.Types
 
 type CodeGen a = RWST Primitives ByteString GenState (Except String) a
 
 data Arity = Arity Int | Indefinite
+  deriving (Eq, Show)
 
 data Primitive = Primitive
   { pEmitter :: [Expr] -> CodeGen ()
-  , pArity   :: Arity
+  , pType    :: Type
   }
 
 newtype Primitives = Primitives { unPrimitives :: Map Text Primitive }
@@ -53,7 +56,12 @@ lookupPrimitive name = Map.lookup name . unPrimitives <$> ask
 primitive :: Text -> CodeGen Primitive
 primitive name = lookupPrimitive name >>= \case
   Just prim -> pure prim
-  Nothing   -> throwError $ "Internal error; lost primitive " <> show name
+  Nothing   -> throwError $ "internal error: lost primitive " <> show name
+
+arity :: Primitive -> Arity
+arity (Primitive _ (TyFun as _)) = Arity $ length as
+arity (Primitive _ (TyFunV _ _)) = Indefinite
+arity _ = error "internal error: primitive is not a function"
 
 funLabel :: CodeGen ByteString
 funLabel = do

@@ -17,6 +17,7 @@ data Type
    | TyBool             -- ^ Boolean.
    | TyString           -- ^ String.
    | TyChar             -- ^ Character.
+   | TyBot              -- ^ Bottom.
    deriving (Eq)
 
 -- | Type variables are identified by a number.
@@ -31,6 +32,7 @@ instance Show Type where
   show TyBool       = "Bool"
   show TyString     = "String"
   show TyChar       = "Char"
+  show TyBot        = "_|_"
 
 -- | A scheme is a universally quantified type.
 data Scheme = Scheme [Int] Type
