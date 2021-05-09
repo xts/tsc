@@ -67,7 +67,7 @@ spec = do
     -- If.
     it "parses if" $ do
       parse "(if #t 1 0)" `shouldBe` Right [If (Lit $ Bool True) (Lit $ Fixnum 1) (Lit $ Fixnum 0)]
-      parse "(if #t 1)" `shouldBe` Right [If (Lit $ Bool True) (Lit $ Fixnum 1) Nil]
+      parse "(if #t #t)" `shouldBe` Right [If (Lit $ Bool True) (Lit $ Bool True) (Lit $ Bool False)]
 
     -- Let.
     it "parses let" $ do

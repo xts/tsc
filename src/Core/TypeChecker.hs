@@ -93,6 +93,7 @@ infer g (If p bt bf) = do
 
 infer _ (Lit (Bool _))   = pure (mempty, TyBool)
 infer _ (Lit (Fixnum _)) = pure (mempty, TyInt)
+infer _ (Lit (Char _))   = pure (mempty, TyChar)
 infer _ (Lit (String _)) = pure (mempty, TyString)
 
 infer _ e = error $ "can't infer " <> show e

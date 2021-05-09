@@ -31,7 +31,7 @@ primitives = let t = TyVar 0 in fromList
   , ("eq",           Primitive eq           $ TyFun [t, t] TyBool)
   , ("error",        Primitive error        $ TyFun [t] TyBot)
   , ("list",         Primitive list         $ TyFunV t (TyList t))
-  , ("set!",         Primitive set          $ TyFun [t] TyBool)
+  , ("set!",         Primitive set          $ TyFun [t, t] TyBool)
   , ("display",      Primitive display      $ TyFun [t] TyBool)
   , ("read-char",    Primitive readChar     $ TyFun [] TyChar)
   , ("char->number", Primitive charToNumber $ TyFun [TyChar] TyInt)
