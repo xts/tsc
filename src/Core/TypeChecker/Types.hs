@@ -25,8 +25,8 @@ type Id = Int
 
 instance Show Type where
   show (TyVar n)    = "t" <> show n
-  show (TyFun s t)  = "(" <> (intercalate " " $ map show s) <> ") -> " <> show t
-  show (TyFunV s t) = "(" <> show s <> "...) -> " <> show t
+  show (TyFun s t)  = "((" <> (intercalate " " $ map show s) <> ") -> " <> show t <> ")"
+  show (TyFunV s t) = "((" <> show s <> "...) -> " <> show t <> ")"
   show (TyList t)   = "[" <> show t <> "]"
   show TyInt        = "Int"
   show TyBool       = "Bool"

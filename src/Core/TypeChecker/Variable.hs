@@ -32,7 +32,7 @@ newtype Subst = Subst (Map Int Type)
   deriving (Monoid, Show)
 
 instance Semigroup Subst where
-  a <> (Subst b) = Subst $ Map.map (apply a) b `Map.union` b
+  (Subst a) <> sb@(Subst b) = Subst $ Map.map (apply sb) a `Map.union` b
 
 instance Variable Scheme where
   apply u (Scheme ns t) = Scheme ns $ apply (u `without` ns) t

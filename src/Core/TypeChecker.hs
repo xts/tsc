@@ -1,5 +1,7 @@
 module Core.TypeChecker
   ( typeCheck
+  , primitiveEnv
+  , infer
   ) where
 
 import Control.Monad.Except (runExcept)
@@ -22,10 +24,14 @@ typeCheck :: Monad m => [Expr] -> Transform m [Expr]
 typeCheck es = transform $ runExcept $ evalStateT go 0
   where
     go = do
-      env <- foldM addPrimitive mempty $ Map.toList primitives
+      env <- primitiveEnv
       mapM_ (infer env) es
       pure es
 
+-- | Environment pre-populated with primitive types.
+primitiveEnv :: TC Env
+primitiveEnv = foldM addPrimitive mempty $ Map.toList primitives
+  where
     addPrimitive g (name, Primitive _ ty) = do
       ty' <- generalise g <$> instantiate (generalise g ty)
       pure $ assign name ty' g
@@ -55,9 +61,15 @@ infer g (Let bs es) = do
   pure (u <> v, last ts)
   where
     binding (u, g') (Binding n e) = do
-      (v, t) <- infer (apply u g') e
-      let t' = generalise (apply v g') t
-      pure (v <> u, assign n t' g')
+      -- Pre-bind to a fresh variable for recursive function bindings.
+      f <- freshVar
+      let g'' = assign n (Scheme [] f) g'
+      -- Infer the type of the body and unify with the fresh variable.
+      (v, t) <- infer (apply u g'') e
+      w <- unify (apply v f) t
+      -- Ugly and possibly incorrect; generalise the binder type.
+      let g''' = assign n (generalise g'' (apply w t)) (apply (v <> w) g'')
+      pure (u <> v <> w, g''')
 
 infer g (LamDef (Args as) _ es) = do
   ts <- replicateM (length as) freshVar
@@ -67,17 +79,17 @@ infer g (LamDef (Args as) _ es) = do
 
 infer g (List (e:es)) = do
   (u, t) <- infer g e
-  (v, ts) <- inferSeq g u es
+  (v, ts) <- inferSeq (apply u g) u es
   f <- freshVar
   w <- unify (apply v t) (TyFun ts f)
-  pure (w <> v <> u, apply w f)
+  pure (u <> v <> w, apply w f)
 
 infer g (If p bt bf) = do
   (u, _) <- infer g p
   (v, t) <- infer (apply u g) bt
-  (w, s) <- infer (apply (v <> u) g) bf
+  (w, s) <- infer (apply (u <> v) g) bf
   x <- unify (apply w t) s
-  pure (x <> w <> v <> u, t)
+  pure (u <> v <> w <> x, apply (w <> x) t)
 
 infer _ (Lit (Bool _))   = pure (mempty, TyBool)
 infer _ (Lit (Fixnum _)) = pure (mempty, TyInt)
@@ -90,7 +102,7 @@ inferSeq g u es = second reverse <$> foldM go (u, []) es
   where
     go (u', ts) e' = do
       (v, t) <- infer (apply u' g) e'
-      pure (v <> u', t:ts)
+      pure (u' <> v, t:ts)
 
 -- | Unify two types, finding a substition that transforms one to the other.
 unify :: Type -> Type -> TC Subst
@@ -101,7 +113,7 @@ unify (TyList (TyVar n)) (TyList t) = bind n t
 unify (TyList t) (TyList (TyVar n)) = bind n t
 
 unify (TyFun as b) (TyFun cs d) | length as == length cs = do
-  u <- foldM (\u (a, c) -> unify (apply u a) (apply u c)) mempty $ zip as cs
+  u <- foldM (\u (a, c) -> mappend u <$> unify (apply u a) (apply u c)) mempty $ zip as cs
   mappend u <$> unify (apply u b) (apply u d)
 
 unify (TyFunV a b) t@(TyFun cs _) = unify (TyFun (replicate (length cs) a) b) t
