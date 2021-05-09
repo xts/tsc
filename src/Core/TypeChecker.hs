@@ -2,6 +2,7 @@ module Core.TypeChecker
   ( typeCheck
   , primitiveEnv
   , infer
+  , reset
   ) where
 
 import Control.Monad.Except (runExcept)
@@ -98,6 +99,7 @@ infer _ (Lit (String _)) = pure (mempty, TyString)
 
 infer _ e = error $ "can't infer " <> show e
 
+-- | Infer the type of multiple expressions, accumulating substitutions.
 inferSeq :: Env -> Subst -> [Expr] -> TC (Subst, [Type])
 inferSeq g u es = second reverse <$> foldM go (u, []) es
   where
@@ -131,3 +133,9 @@ bind :: Int -> Type -> TC Subst
 bind n (TyVar k) | n == k = pure mempty
 bind n t | n `Set.member` free t = error $ "error: occurs check failed for " <> show t
          | otherwise             = pure $ Subst $ Map.singleton n t
+
+-- | Minimise variable ids while preserving ordering, e.g. t3 -> t5 => t0 -> t1.
+reset :: Type -> Type
+reset ty = apply (Subst $ Map.map TyVar mapping) ty
+  where
+    mapping = Map.fromList $ zip (Set.toList $ free ty) [0..]
