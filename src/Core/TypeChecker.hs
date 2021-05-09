@@ -27,6 +27,7 @@ typeCheck es = transform $ runExcept $ do
                , ("<",       Scheme []  $ TyFun [TyInt, TyInt] TyBool)
                , ("eq",      Scheme [2] $ TyFun [TyVar 2, TyVar 2] TyBool)
                , ("car",     Scheme [3] $ TyFun [TyList (TyVar 3)] (TyVar 3))
+               , ("+",       Scheme []  $ TyFunV TyInt TyInt)
                ])
 
 -- | Instantiate a scheme with fresh variables.
@@ -68,7 +69,7 @@ infer g (List (e:es)) = do
   (u, t) <- infer g e
   (v, ts) <- inferSeq g u es
   f <- freshVar
-  w <- unify (apply v t) (TyFun ts f)
+  w <- unify (traceShowId $ apply v t) (traceShowId $ TyFun ts f)
   pure (w <> v <> u, apply w f)
 
 infer g (If p bt bf) = do
@@ -95,11 +96,17 @@ inferSeq g u es = second reverse <$> foldM go (u, []) es
 unify :: Type -> Type -> TC Subst
 unify (TyVar n) s = bind n s
 unify t (TyVar n) = bind n t
+
+unify (TyList (TyVar n)) (TyList t) = bind n t
+unify (TyList t) (TyList (TyVar n)) = bind n t
+
 unify (TyFun as b) (TyFun cs d) | length as == length cs = do
   u <- foldM (\u (a, c) -> unify (apply u a) (apply u c)) mempty $ zip as cs
   mappend u <$> unify (apply u b) (apply u d)
-unify (TyList (TyVar n)) (TyList t) = bind n t
-unify (TyList t) (TyList (TyVar n)) = bind n t
+
+unify (TyFunV a b) t@(TyFun cs _) = unify (TyFun (replicate (length cs) a) b) t
+unify t s@(TyFunV {}) = unify s t
+
 unify s t | s == t    = pure mempty
           | otherwise = error $ "type mismatch: " <> show t <> " vs " <> show s
 
