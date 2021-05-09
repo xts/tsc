@@ -29,8 +29,8 @@ The heap, stack, and code all use units of 64-bit words.
 Memory allocations are performed by bumping a pointer. Every `N`th allocation will
 trigger a GC, for some `N`.
 
-For simplicity, all allocations are 16-byte aligned and the immediately preceding word
-holds a tagged allocation header containing the size in words (excluding the header.)
+For simplicity, all allocations are 8-byte aligned and the immediately preceding word
+holds a tagged allocation header containing the size (in words, excluding the header.)
 
 The GC performs a depth-first search on the stack, moving reachable allocations to another
 heap space and compacting the heap in the process.
