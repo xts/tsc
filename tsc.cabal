@@ -4,7 +4,6 @@ version:            0.1.0.0
 maintainer:         terje@stoeback.net
 author:             Terje Stoeback
 extra-source-files:
-  CHANGELOG.md,
   src/Core/RTS/gc.c,
   src/Core/RTS/gc.h,
   src/Core/RTS/main.c,
