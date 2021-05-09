@@ -1,11 +1,12 @@
-# Toy lisp compiler
+# Toy compiler
 
-Translates a simple scheme-like language to x86_64 assembly and links it with clang.
+Compiles a statically typed scheme-like language to x86_64 assembly and links it with clang.
 
 - :heavy_check_mark: Closures
-- :heavy_check_mark: Proper tail calls
+- :heavy_check_mark: Proper tail recursion
 - :heavy_check_mark: Copying garbage collector
-- :x: Type checker
+- :heavy_check_mark: Global type inferencing
+- :x: Decent error messages
 
 &nbsp;
 
@@ -13,7 +14,7 @@ Translates a simple scheme-like language to x86_64 assembly and links it with cl
 
 Run `cabal build` to build.
 
-Run `make test` to run the test suite, running tests in parallel.
+Run `make test` to run the test suite with parallelisation enabled.
 
 ## Implementation details
 
@@ -47,6 +48,8 @@ Values are typed based on the tag in their bottom three bits.
 | `?00` | Fixed-size number  |
 | `111` | Character          |
 
+Some of these are now obsoleted by the type checker and may go away.
+
 ### Stack frame layout
 
 Function arguments are placed in the callee's stack space, and space is reserved
@@ -64,6 +67,7 @@ bindings in scope will see the following stack values relative to RBP.
 | 1       | Function argument 1       |
 | 0       | Address of previous frame |
 | -1      | Return address            |
+
 
 ### Closure layout
 
@@ -89,3 +93,9 @@ There is no register allocator yet, so the rules are simple.
 | rax      | Input and output for operators |
 
 Other registers may be used but are not expected to be preserved between operations.
+
+### Source material
+
+- R. Milner, "A Theory of Type Polymorphism in Programming," 1977.
+- A. Ghuloum, "An Incremental Approach to Compiler Construction," 2006.
+- M. Grabmüller, "Algorithm W Step by Step," 2006.
