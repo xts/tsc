@@ -34,7 +34,7 @@ primitiveEnv :: TC Env
 primitiveEnv = foldM addPrimitive mempty $ Map.toList primitives
   where
     addPrimitive g (name, Primitive _ ty) = do
-      ty' <- generalise g <$> instantiate (generalise g ty)
+      ty' <- generalise g <$> instantiate (Scheme (Set.toList $ free ty) ty)
       pure $ assign name ty' g
 
 -- | Instantiate a scheme with fresh variables.
